@@ -13,10 +13,13 @@ export default async function read(data){
 
     const length = 4096 * sector;
     const chunk = data.slice(offset,offset + length);
+    // if (offset === sector) continue;
 
-    console.log(offset,sector);
+    const size = new DataView(chunk.buffer).getInt32(0);
+
+    // console.log(size);
     result.push(chunk);
-    break;
+    // if (result.length >= 2) break;
   }
 
   return result;
