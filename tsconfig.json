@@ -2,12 +2,10 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "allowJs": true,
-    "checkJs": true,
     "module": "ESNext",
     "moduleResolution": "Node",
     "target": "ESNext",
-    "noEmit": true,
+    "declaration": true,
     "strict": true
   },
   "include": [
