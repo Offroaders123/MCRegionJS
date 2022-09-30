@@ -1,35 +1,42 @@
-import zlib from "zlib";
-import NBT from "../../NBT-Parser/src/index.js";
-import { chunkify } from "../../Gamedata-Parser/src/index.js";
+import * as zlib from "node:zlib";
+import { chunkify, Chunk, Region } from "./index.js";
 
-export default async function read(data){
-  const locations = new Uint8Array(data.slice(0,4096));
-  const definitions = getDefinitions(locations);
-  const result = [];
+/**
+ * @param { Uint8Array } data
+*/
+export async function read(data){
+  const locations = getLocations(new Uint8Array(data.subarray(0,4096)));
+  // console.log(locations);
+  const result = new Region(locations);
 
-  for (const definition of definitions){
-    const offset = new DataView(new Uint8Array([0,...definition.slice(0,3)]).buffer).getInt32(0) * 4096;
-    const sector = definition[3];
+  for (const [i,location] of locations.entries()){
+    const offset = new DataView(new Uint8Array([0,...location.slice(0,3)]).buffer).getUint32(0) * 4096;
+    const size = location[3] * 4096;
+    if (offset === size) continue;
+    // console.log(offset,size);
 
-    const length = 4096 * sector;
-    const chunk = data.slice(offset,offset + length);
-    // if (offset === sector) continue;
+    const chunk = Buffer.from(data.subarray(offset,offset + size));
 
-    const size = new DataView(chunk.buffer).getInt32(0);
+    const header = data.subarray(0,12);
+    // console.log(header);
 
-    // console.log(size);
-    result.push(chunk);
-    // if (result.length >= 2) break;
+    const content = zlib.inflateRawSync(chunk.subarray(12));
+    // console.log(content,"\n");
+
+    result.chunks.push(new Chunk(header,content));
+    // if (i === 1) break;
   }
 
   return result;
 }
 
-function getDefinitions(data){
+/**
+ * @param { Uint8Array } data
+*/
+function getLocations(data){
   const view = new DataView(data.buffer);
   const offset = view.getUint8(0);
-  const locations = data.slice(offset);
-
-  const result = chunkify(locations,4);
+  const entries = data.slice(offset);
+  const result = chunkify(entries,4);
   return result;
 }

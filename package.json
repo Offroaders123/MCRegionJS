@@ -1,3 +1,24 @@
 {
-  "type": "module"
+  "name": "mcregionjs",
+  "version": "0.2.0",
+  "description": "An experimental testing setup for my Gamedata Parser project!",
+  "type": "module",
+  "main": "./src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Offroaders123/MCRegionJS.git"
+  },
+  "author": "Brandon Bennett <offroaders123@gmail.com> (https://github.com/Offroaders123)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Offroaders123/MCRegionJS/issues"
+  },
+  "homepage": "https://github.com/Offroaders123/MCRegionJS#readme",
+  "dependencies": {
+    "gamedata-parser": "file:../Gamedata-Parser",
+    "nbtify": "file:../NBTify"
+  },
+  "devDependencies": {
+    "@types/node": "^18.7.23"
+  }
 }
