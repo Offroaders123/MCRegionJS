@@ -1,11 +1,16 @@
 export * from "./read.js";
 
-export class Region {
-  constructor(public locations: Uint8Array[] = [], public chunks: Chunk[] = []) {}
+export class Region extends Array<Chunk> {
+  static getLocations(data: Uint8Array) {
+    const view = new DataView(data.buffer);
+    const offset = view.getUint8(0);
+    const result = [...chunkify(data.slice(offset),4)];
+    return result;
+  }
 }
 
 export class Chunk {
-  constructor(public header: Uint8Array, public data: Uint8Array) {}
+  constructor(public location: Uint8Array, public header: Uint8Array, public value: Uint8Array) {}
 }
 
 export function* chunkify(data: Uint8Array, length: number){
