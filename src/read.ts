@@ -2,7 +2,7 @@ import * as zlib from "node:zlib";
 import { chunkify, Chunk, Region } from "./index.js";
 
 export async function read(data: Uint8Array){
-  const locations = [getLocations(new Uint8Array(data.slice(0,4096))).map(Buffer.from)[0]];
+  const locations = getLocations(new Uint8Array(data.slice(0,4096))).map(Buffer.from).slice(0,1);
   // console.log(locations);
   const result = new Region(locations);
 
@@ -31,6 +31,6 @@ function getLocations(data: Uint8Array){
   const view = new DataView(data.buffer);
   const offset = view.getUint8(0);
   const entries = data.slice(offset);
-  const result = chunkify(entries,4);
+  const result = [...chunkify(entries,4)];
   return result;
 }
