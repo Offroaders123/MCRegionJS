@@ -16,8 +16,7 @@
   },
   "homepage": "https://github.com/Offroaders123/MCRegionJS#readme",
   "dependencies": {
-    "gamedata-parser": "file:../Gamedata-Parser",
-    "nbtify": "file:../NBTify"
+    "nbtify": "^1.0.3"
   },
   "devDependencies": {
     "@types/node": "^18.7.23",
