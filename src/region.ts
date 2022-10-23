@@ -1,36 +1,41 @@
 import * as zlib from "node:zlib";
-import { chunkify, Chunk, Region } from "./index.js";
+import { chunkify } from "./index.js";
 
-export async function read(data: Uint8Array){
-  const locations = getLocations(new Uint8Array(data.slice(0,4096))).map(Buffer.from).slice(0,1);
-  // console.log(locations);
-  const result = new Region(locations);
-
-  for (const location of locations){
-    const offset = new DataView(new Uint8Array([0,...location.slice(0,3)]).buffer).getUint32(0) * 4096;
-    const size = location[3] * 4096;
-    if (offset === size) continue;
-    // console.log(offset,size);
-
-    const chunk = data.slice(offset,offset + size);
-
-    const header = data.slice(0,12);
-    // console.log(header);
-
-    const content = zlib.inflateRawSync(chunk.slice(12));
-    // console.log(content,"\n");
-
-    result.chunks.push(new Chunk(header,content));
-    break;
-  }
-
-  return result;
+export interface ChunkLocation {
+  offset: number;
+  length: number;
 }
 
-function getLocations(data: Uint8Array){
-  const view = new DataView(data.buffer);
-  const offset = view.getUint8(0);
-  const entries = data.slice(offset);
-  const result = [...chunkify(entries,4)];
-  return result;
+export class Region {
+  static read(data: Uint8Array) {
+    const locations = this.readLocations(data);
+    const chunks = locations.map(location => this.readChunk(data,location));
+    return chunks;
+  }
+
+  static readChunk(data: Uint8Array, { offset, length }: ChunkLocation) {
+    const chunk = new Uint8Array(data.slice(offset,offset + length));
+    const header = chunk.slice(0,12);
+    const content = new Uint8Array(zlib.inflateRawSync(chunk.slice(12)));
+    return { header, content };
+  }
+
+  static readLocations(data: Uint8Array) {
+    const header = new Uint8Array(data.slice(0,4096));
+    const view = new DataView(header.buffer);
+    const offset = view.getUint8(0);
+    const locations = [...chunkify(header.slice(offset),4)];
+
+    const result: ChunkLocation[] = [];
+
+    for (const location of locations){
+      const view = new DataView(location.buffer);
+      const offset = view.getUint32(0) & 0xffffff * 4096;
+      const length = view.getUint8(3) * 4096;
+      result.push({ offset, length });
+      break; // For testing
+    }
+
+    return result;
+  }
 }
