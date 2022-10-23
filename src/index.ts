@@ -1,4 +1,4 @@
-export * from "./read.js";
+export * from "./region.js";
 
 export class Region {
   constructor(public locations: Uint8Array[] = [], public chunks: Chunk[] = []) {}
