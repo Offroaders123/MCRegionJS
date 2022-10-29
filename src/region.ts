@@ -1,5 +1,4 @@
 import * as zlib from "node:zlib";
-import { chunkify } from "./index.js";
 
 export interface ChunkLocation {
   offset: number;
@@ -21,18 +20,18 @@ export class Region {
   }
 
   static readLocations(data: Uint8Array) {
-    const header = new Uint8Array(data.slice(0,4096));
-    const view = new DataView(header.buffer);
+    const locations = new Uint8Array(data.slice(0,4096));
+    const view = new DataView(locations.buffer);
     const offset = view.getUint8(0);
-    const locations = [...chunkify(header.slice(offset),4)];
 
     const result: ChunkLocation[] = [];
 
-    for (const location of locations){
+    for (let i = offset; i < locations.byteLength; i += 4){
+      const location = new Uint8Array(locations.slice(i,i + 4));
       const view = new DataView(location.buffer);
-      const offset = view.getUint32(0) & 0xffffff * 4096;
+      const offset2 = view.getUint32(0) & 0xffffff * 4096;
       const length = view.getUint8(3) * 4096;
-      result.push({ offset, length });
+      result.push({ offset: offset2, length });
       break; // For testing
     }
 
