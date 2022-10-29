@@ -1,22 +1,27 @@
-import * as zlib from "node:zlib";
+import { inflateRaw } from "./index.js";
 
 export interface ChunkLocation {
   offset: number;
   length: number;
 }
 
-export class Region {
-  static read(data: Uint8Array) {
+export interface Chunk {
+  header: Uint8Array;
+  content: Uint8Array;
+}
+
+export class Region extends Array<Chunk> {
+  static async read(data: Uint8Array) {
     const locations = this.readLocations(data);
-    const chunks = locations.map(location => this.readChunk(data,location));
-    return chunks;
+    const chunks = await Promise.all(locations.map(location => this.readChunk(data,location)));
+    return new Region(...chunks);
   }
 
-  static readChunk(data: Uint8Array, { offset, length }: ChunkLocation) {
+  static async readChunk(data: Uint8Array, { offset, length }: ChunkLocation) {
     const chunk = new Uint8Array(data.slice(offset,offset + length));
     const header = chunk.slice(0,12);
-    const content = new Uint8Array(zlib.inflateRawSync(chunk.slice(12)));
-    return { header, content };
+    const content = new Uint8Array(await inflateRaw(chunk.slice(12)));
+    return { header, content } as Chunk;
   }
 
   static readLocations(data: Uint8Array) {
