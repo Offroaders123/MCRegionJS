@@ -1,13 +1,8 @@
-import { inflateRaw } from "./index.js";
+import { Chunk } from "./chunk.js";
 
 export interface Location {
   offset: number;
   length: number;
-}
-
-export interface Chunk {
-  header: Uint8Array;
-  content: Uint8Array;
 }
 
 export class Region extends Array<Chunk> {
@@ -17,11 +12,13 @@ export class Region extends Array<Chunk> {
     return new Region(...chunks);
   }
 
-  static async readChunk(data: Uint8Array, { offset, length }: Location) {
-    const chunk = new Uint8Array(data.slice(offset,offset + length));
-    const header = chunk.slice(0,12);
-    const content = await inflateRaw(chunk.slice(12));
-    return { header, content } as Chunk;
+  static getChunk(data: Uint8Array, { offset, length }: Location) {
+    return new Uint8Array(data.slice(offset,offset + length));
+  }
+
+  static async readChunk(data: Uint8Array, location: Location) {
+    const chunk = this.getChunk(data,location);
+    return Chunk.read(chunk);
   }
 
   static readLocations(data: Uint8Array) {
