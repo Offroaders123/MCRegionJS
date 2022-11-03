@@ -19,7 +19,9 @@
     "nbtify": "^1.0.3"
   },
   "devDependencies": {
-    "@types/node": "^18.7.23",
+    "@types/node": "^18.7.23"
+  },
+  "optionalDependencies": {
     "typescript": "^4.8.4"
   }
 }
