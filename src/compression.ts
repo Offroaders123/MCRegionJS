@@ -1,4 +1,19 @@
-export function decode(data: Uint8Array, decompressed: number){
+import { promisify } from "node:util";
+import { inflateRaw as inflateRawCallback } from "node:zlib";
+
+/**
+ * A Promise-based wrapper for the Node Zlib Inflate Raw callback function.
+*/
+export async function inflateRaw(data: Uint8Array){
+  const buffer = await promisify(inflateRawCallback)(data);
+  const result = new Uint8Array(buffer);
+  return result;
+}
+
+/**
+ * Decodes Uint8Array data compressed with the Run-Length Encoding format.
+*/
+export function rld(data: Uint8Array, decompressed: number){
   const compressed = data.byteLength;
   const result = new Uint8Array(decompressed);
   let i = 0;

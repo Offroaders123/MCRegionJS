@@ -1,4 +1,4 @@
-import { inflateRaw } from "./index.js";
+import { inflateRaw } from "./compression.js";
 
 export class Chunk {
   static async read(data: Uint8Array) {
