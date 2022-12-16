@@ -12,31 +12,44 @@ export class Region extends Array<Chunk> {
     return new Region(...chunks);
   }
 
-  static getChunk(data: Uint8Array, { offset, length }: Location) {
-    return new Uint8Array(data.slice(offset,offset + length));
-  }
-
-  static async readChunk(data: Uint8Array, location: Location) {
-    const chunk = this.getChunk(data,location);
-    return Chunk.read(chunk);
+  static getLocations(data: Uint8Array) {
+    return data.subarray(0,4096);
   }
 
   static readLocations(data: Uint8Array) {
-    const locations = new Uint8Array(data.slice(0,4096));
-    const view = new DataView(locations.buffer);
+    const locations = this.getLocations(data);
+    const view = new DataView(locations.buffer,locations.byteOffset,locations.byteLength);
     const offset = view.getUint8(0);
 
     const result: Location[] = [];
 
     for (let i = offset; i < locations.byteLength; i += 4){
-      const location = new Uint8Array(locations.slice(i,i + 4));
-      const view = new DataView(location.buffer);
-      const offset2 = view.getUint32(0) & 0xffffff * 4096;
-      const length = view.getUint8(3) * 4096;
-      result.push({ offset: offset2, length });
+      const data = this.getLocation(locations,i);
+      const location = this.readLocation(data);
+      result.push(location);
       break; // For testing
     }
 
     return result;
+  }
+
+  static getLocation(data: Uint8Array, offset: number) {
+    return data.subarray(offset,offset + 4);
+  }
+
+  static readLocation(data: Uint8Array): Location {
+    const view = new DataView(data.buffer,data.byteOffset,data.byteLength);
+    const offset = view.getUint32(0) & 0xFFFFFF * 4096;
+    const length = view.getUint8(3) * 4096;
+    return { offset, length };
+  }
+
+  static getChunk(data: Uint8Array, { offset, length }: Location) {
+    return data.subarray(offset,offset + length);
+  }
+
+  static async readChunk(data: Uint8Array, { offset, length }: Location) {
+    const chunk = this.getChunk(data,{ offset, length });
+    return await Chunk.read(chunk);
   }
 }
