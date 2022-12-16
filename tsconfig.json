@@ -7,8 +7,5 @@
     "target": "ESNext",
     "declaration": true,
     "strict": true
-  },
-  "include": [
-    "./src/**/*"
-  ]
+  }
 }

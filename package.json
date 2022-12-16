@@ -1,6 +1,6 @@
 {
   "name": "mcregionjs",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "An experimental testing setup for my Gamedata Parser project!",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,13 +15,12 @@
     "url": "https://github.com/Offroaders123/MCRegionJS/issues"
   },
   "homepage": "https://github.com/Offroaders123/MCRegionJS#readme",
-  "dependencies": {
-    "nbtify": "^1.0.3"
-  },
   "devDependencies": {
-    "@types/node": "^18.11.9"
-  },
-  "optionalDependencies": {
+    "@types/node": "^18.11.9",
     "typescript": "^4.9.3"
-  }
+  },
+  "dependencies": {
+    "nbtify": "^1.12.0"
+  },
+  "sideEffects": false
 }
