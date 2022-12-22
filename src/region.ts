@@ -12,29 +12,21 @@ export class Region extends Array<Chunk> {
     return new Region(...chunks);
   }
 
-  static #getLocations(data: Uint8Array) {
-    return data.subarray(0,4096);
-  }
-
   static readLocations(data: Uint8Array) {
-    const locations = this.#getLocations(data);
+    const locations = data.subarray(0,4096);
     const view = new DataView(locations.buffer,locations.byteOffset,locations.byteLength);
     const offset = view.getUint8(0);
 
     const result: Location[] = [];
 
     for (let i = offset; i < locations.byteLength; i += 4){
-      const data = this.#getLocation(locations,i);
+      const data = locations.subarray(i,i + 4);
       const location = this.#readLocation(data);
       result.push(location);
       break; // For testing
     }
 
     return result;
-  }
-
-  static #getLocation(data: Uint8Array, offset: number) {
-    return data.subarray(offset,offset + 4);
   }
 
   static #readLocation(data: Uint8Array): Location {
@@ -44,12 +36,8 @@ export class Region extends Array<Chunk> {
     return { offset, length };
   }
 
-  static #getChunk(data: Uint8Array, { offset, length }: Location) {
-    return data.subarray(offset,offset + length);
-  }
-
   static async #readChunk(data: Uint8Array, { offset, length }: Location) {
-    const chunk = this.#getChunk(data,{ offset, length });
+    const chunk = data.subarray(offset,offset + length);
     return Chunk.read(chunk);
   }
 }
