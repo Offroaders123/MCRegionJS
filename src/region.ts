@@ -23,7 +23,7 @@ export class Region extends Array<Chunk> {
       const data = locations.subarray(i,i + 4);
       const location = this.#readLocation(data);
       result.push(location);
-      break; // For testing
+      // break; // For testing
     }
 
     return result;
