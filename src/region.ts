@@ -21,7 +21,7 @@ export class Region extends Array<Chunk> {
       const offset = (view.getUint32(i) >> 8) * 4096;
       const length = view.getUint8(i + 3) * 4096;
       result.push({ offset, length });
-      // break; // For testing
+      break; // For testing
     }
 
     return result;

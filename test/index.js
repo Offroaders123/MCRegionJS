@@ -10,24 +10,5 @@ const data = await fs.readFile(new URL("./world/r.0.0.mcr",import.meta.url))
 const region = await Region.read(data);
 
 for (const chunk of region){
-  console.log(chunk.rle ?? null);
+  console.log(chunk);
 }
-
-/*
-const content = data.subarray(0,4096);
-const view = new DataView(content.buffer,content.byteOffset,content.byteLength);
-
-let result = "";
-
-for (let i = 0; i < content.byteLength; i += 4){
-  // result += `${data.subarray(i,i + 4).join(" ")}\n`;
-  // result += `${new Int32Array(data.buffer.slice(i,i + 4))}\n`;
-  // const location = view.getUint32(i);
-  // Thanks UtterEvergreen!!!
-  const offset = (view.getUint32(i) >> 8) * 4096;
-  const length = view.getUint8(i + 3) * 4096;
-  result += `${offset} ${length}\n`;
-}
-
-console.log(result);
-*/
