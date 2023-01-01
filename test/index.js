@@ -10,7 +10,7 @@ const data = await fs.readFile(new URL("./world/r.0.0.mcr",import.meta.url))
 const region = await Region.read(data);
 
 for (const chunk of region){
-  console.log(chunk);
+  console.log(chunk.rle ?? null);
 }
 
 /*
