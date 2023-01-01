@@ -9,11 +9,7 @@ export interface CompressionHeader {
 
 export class Chunk {
   static async read(data: Uint8Array) {
-    const { decompressedLength } = this.readCompressionHeader(data);
-
-    const compressedData = data.subarray(12);
-    const RLECompressedData = await inflateRaw(compressedData);
-    const decompressedData = rleDecode(RLECompressedData,decompressedLength);
+    const decompressedData = await this.decompress(data);
 
     return { data: decompressedData };
   }
@@ -27,6 +23,16 @@ export class Chunk {
     const RLECompressedLength = view.getUint32(8);
 
     return { isRLE, compressedLength, RLECompressedLength, decompressedLength } as CompressionHeader;
+  }
+
+  static async decompress(data: Uint8Array) {
+    const { decompressedLength } = this.readCompressionHeader(data);
+
+    const compressedData = data.subarray(12);
+    const RLECompressedData = await inflateRaw(compressedData);
+    const decompressedData = rleDecode(RLECompressedData,decompressedLength);
+
+    return decompressedData;
   }
 
   constructor(public data: Uint8Array) {}
