@@ -19,19 +19,21 @@ export function rleDecode(data: Uint8Array, decompressedLength: number){
   let writeOffset = 0;
 
   while (readOffset < compressedLength){
-    const suspectedValue = data[readOffset];
+    const suspectedTag = data[readOffset];
     const suspectedLength = data[readOffset + 1];
 
-    if (suspectedValue === 0xFF && suspectedLength >= 3){
+    if (suspectedTag === 0xFF && suspectedLength >= 3){
       const value = data[readOffset + 2];
       const length = suspectedLength;
       const entries = new Uint8Array(length).fill(value);
 
       result.set(entries,writeOffset);
+
       readOffset += 2;
       writeOffset += (suspectedLength - 1);
     } else {
-      result[writeOffset] = suspectedValue;
+      const value = suspectedTag;
+      result[writeOffset] = value;
     }
 
     readOffset++;

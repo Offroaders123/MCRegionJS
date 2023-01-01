@@ -5,7 +5,7 @@ export interface Location {
   length: number;
 }
 
-export class Region extends Array<Chunk> {
+export class Region extends Array<Chunk | null> {
   static async read(data: Uint8Array) {
     const locations = this.readLocations(data);
     const chunks = await Promise.all(locations.map(location => this.readChunk(data,location)));
@@ -28,7 +28,7 @@ export class Region extends Array<Chunk> {
   }
 
   static async readChunk(data: Uint8Array, { offset, length }: Location) {
-    if (offset === 0 && length === 0) return new Chunk();
+    if (offset === 0 && length === 0) return null;
 
     const chunk = data.subarray(offset,offset + length);
     return Chunk.read(chunk);

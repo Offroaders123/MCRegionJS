@@ -9,14 +9,13 @@ export interface Header {
 
 export class Chunk {
   static async read(data: Uint8Array) {
-    const { isRLE, compressedLength, RLECompressedLength, decompressedLength } = this.readHeader(data);
+    const { decompressedLength } = this.readHeader(data);
 
-    const compressedData = data.subarray(12,12 + compressedLength);
-    const RLECompressedData = new Uint8Array(RLECompressedLength);
-    RLECompressedData.set(await inflateRaw(compressedData),0);
+    const compressedData = data.subarray(12);
+    const RLECompressedData = await inflateRaw(compressedData);
     const decompressedData = rleDecode(RLECompressedData,decompressedLength);
 
-    return Object.assign(new Chunk(),{ decompressedData });
+    return new Chunk(decompressedData);
   }
 
   static readHeader(data: Uint8Array) {
@@ -29,4 +28,6 @@ export class Chunk {
 
     return { isRLE, compressedLength, RLECompressedLength, decompressedLength } as Header;
   }
+
+  constructor(public data: Uint8Array) {}
 }
