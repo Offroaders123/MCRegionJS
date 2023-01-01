@@ -6,36 +6,36 @@ import { inflateRaw as inflateRawCallback } from "node:zlib";
 */
 export async function inflateRaw(data: Uint8Array){
   const buffer = await promisify(inflateRawCallback)(data);
-  const result = new Uint8Array(buffer);
-  return result;
+  return new Uint8Array(buffer);
 }
 
 /**
  * Decodes Uint8Array data compressed with the Run-Length Encoding format.
 */
-export function rld(data: Uint8Array, decompressed: number){
-  const compressed = data.byteLength;
-  const result = new Uint8Array(decompressed);
-  let i = 0;
-  let offset = 0;
+export function rleDecode(data: Uint8Array, decompressedLength: number){
+  const compressedLength = data.byteLength;
+  const result = new Uint8Array(decompressedLength);
+  let readOffset = 0;
+  let writeOffset = 0;
 
-  while (i < compressed){
-    const entry = data[i];
-    const length = data[i + 1];
+  while (readOffset < compressedLength){
+    const suspectedValue = data[readOffset];
+    const suspectedLength = data[readOffset + 1];
 
-    if (entry === 0xFF && length >= 3){
-      const value = data[i + 2];
-      const entries = Array<number>(length).fill(value);
+    if (suspectedValue === 0xFF && suspectedLength >= 3){
+      const value = data[readOffset + 2];
+      const length = suspectedLength;
+      const entries = new Uint8Array(length).fill(value);
 
-      result.set(entries,offset);
-      i += 2;
-      offset += (length - 1);
+      result.set(entries,writeOffset);
+      readOffset += 2;
+      writeOffset += (suspectedLength - 1);
     } else {
-      result[offset] = entry;
+      result[writeOffset] = suspectedValue;
     }
 
-    i++;
-    offset++;
+    readOffset++;
+    writeOffset++;
   }
 
   return result;

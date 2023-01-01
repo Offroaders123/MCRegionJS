@@ -1,22 +1,20 @@
-import { inflateRaw, rld } from "./compression.js";
+import { inflateRaw, rleDecode } from "./compression.js";
 
 export interface Header {
   isRLE: boolean;
   compressedLength: number;
-  decompressedLength: number;
   RLECompressedLength: number;
+  decompressedLength: number;
 }
 
 export class Chunk {
   static async read(data: Uint8Array) {
-    const { isRLE, compressedLength, decompressedLength, RLECompressedLength } = this.readHeader(data);
+    const { isRLE, compressedLength, RLECompressedLength, decompressedLength } = this.readHeader(data);
 
-    const compressedData = data.subarray(12);
+    const compressedData = data.subarray(12,12 + compressedLength);
     const RLECompressedData = new Uint8Array(RLECompressedLength);
-
-    RLECompressedData.set(await inflateRaw(compressedData));
-
-    const decompressedData = rld(RLECompressedData,decompressedLength);
+    RLECompressedData.set(await inflateRaw(compressedData),0);
+    const decompressedData = rleDecode(RLECompressedData,decompressedLength);
 
     return Object.assign(new Chunk(),{ decompressedData });
   }
@@ -29,6 +27,6 @@ export class Chunk {
     const decompressedLength = view.getUint32(4);
     const RLECompressedLength = view.getUint32(8);
 
-    return { isRLE, compressedLength, decompressedLength, RLECompressedLength } as Header;
+    return { isRLE, compressedLength, RLECompressedLength, decompressedLength } as Header;
   }
 }
