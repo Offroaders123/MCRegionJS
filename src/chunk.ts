@@ -20,7 +20,7 @@ export class Chunk {
     const decompressedData = await this.decompress(data);
     const header = this.readHeader(decompressedData);
 
-    return { ...header, data: decompressedData.subarray(26) };
+    return { ...header, data: decompressedData };
   }
 
   static readCompressionHeader(data: Uint8Array) {
