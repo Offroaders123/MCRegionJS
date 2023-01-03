@@ -20,10 +20,11 @@ export class Chunk {
     data = await this.decompress(data);
 
     const header = this.readHeader(data);
+    const blocks = this.readBlocks(data);
 
     data = data.subarray(26);
 
-    return { ...header, data };
+    return { ...header, ...blocks };
   }
 
   static readCompressionHeader(data: Uint8Array) {
@@ -57,6 +58,28 @@ export class Chunk {
     const inhabited = view.getBigUint64(18);
 
     return { format, x, y, lastUpdate, inhabited } as Header;
+  }
+
+  static readBlocks(data: Uint8Array) {
+    data = data.subarray(26);
+
+    const view = new DataView(data.buffer,data.byteOffset,data.byteLength);
+    let byteOffset = 0;
+
+    const maxSectionAddress = view.getUint16((byteOffset += 2) - 2) << 8;
+    const sectionJumpTable = new Uint16Array(16);
+
+    for (const i in sectionJumpTable){
+      const entry = view.getUint16(Number(i) + (byteOffset += 2) - 2);
+      sectionJumpTable[i] = entry;
+    }
+
+    const sizeOfSubChunks = data.slice(byteOffset,byteOffset += 16);
+
+    const blocks = new Uint16Array();
+    const submerged = new Uint16Array();
+
+    return { maxSectionAddress, sectionJumpTable, sizeOfSubChunks, blocks, submerged };
   }
 
   constructor(public data: Uint8Array) {}
