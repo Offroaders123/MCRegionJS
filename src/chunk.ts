@@ -17,10 +17,13 @@ export interface Header {
 
 export class Chunk {
   static async read(data: Uint8Array) {
-    const decompressedData = await this.decompress(data);
-    const header = this.readHeader(decompressedData);
+    data = await this.decompress(data);
 
-    return { ...header, data: decompressedData };
+    const header = this.readHeader(data);
+
+    data = data.subarray(26);
+
+    return { ...header, data };
   }
 
   static readCompressionHeader(data: Uint8Array) {
@@ -35,8 +38,7 @@ export class Chunk {
   }
 
   static async decompress(data: Uint8Array) {
-    const { isRLE, compressedLength, RLECompressedLength, decompressedLength } = this.readCompressionHeader(data);
-    console.log(isRLE,compressedLength,decompressedLength,RLECompressedLength);
+    const { decompressedLength } = this.readCompressionHeader(data);
 
     const compressedData = data.subarray(12);
     const RLECompressedData = await inflateRaw(compressedData);

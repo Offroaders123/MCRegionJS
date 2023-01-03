@@ -35,13 +35,15 @@ for (const chunk of region){
 //  * @returns { Promise<NBT.NBTData> }
 // */
 // async function findNBT(data,offset = 0){
+//   if (offset > data.byteLength){
+//     throw new Error("Reached the end of the buffer! No NBT data was found");
+//   }
+
 //   try {
 //     console.log(offset);
-//     if (offset > data.byteLength) throw new Error("Reached the end of the buffer! No NBT data was found");
 //     // return await NBT.read(data);
 //     return await NBT.read(data,{ endian: "big", compression: null, isNamed: true, isBedrockLevel: false });
-//   } catch (error){
-//     if (offset > data.byteLength) throw error;
+//   } catch {
 //     return findNBT(data,offset += 1);
 //   }
 // }
