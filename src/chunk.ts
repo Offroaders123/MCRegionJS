@@ -35,7 +35,8 @@ export class Chunk {
   }
 
   static async decompress(data: Uint8Array) {
-    const { decompressedLength } = this.readCompressionHeader(data);
+    const { isRLE, compressedLength, RLECompressedLength, decompressedLength } = this.readCompressionHeader(data);
+    console.log(isRLE,compressedLength,decompressedLength,RLECompressedLength);
 
     const compressedData = data.subarray(12);
     const RLECompressedData = await inflateRaw(compressedData);
