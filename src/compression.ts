@@ -1,18 +1,32 @@
-import { promisify } from "node:util";
-import { inflateRaw as inflateRawCallback } from "node:zlib";
+import { type CompressionFormat, makeCompressionStream, makeDecompressionStream } from "compression-streams-polyfill/ponyfill";
+
+const CompressionStream = makeCompressionStream(TransformStream);
+const DecompressionStream = makeDecompressionStream(TransformStream);
 
 /**
- * A Promise-based wrapper for the Node Zlib Inflate Raw callback function.
+ * Transforms a Uint8Array through a specific compression format.
 */
-export async function inflateRaw(data: Uint8Array){
-  const buffer = await promisify(inflateRawCallback)(data);
+export async function compress(data: Uint8Array, format: CompressionFormat): Promise<Uint8Array> {
+  const { body } = new Response(data);
+  const readable = body!.pipeThrough(new CompressionStream(format));
+  const buffer = await new Response(readable).arrayBuffer();
+  return new Uint8Array(buffer);
+}
+
+/**
+ * Transforms a Uint8Array through a specific decompression format.
+*/
+export async function decompress(data: Uint8Array, format: CompressionFormat): Promise<Uint8Array> {
+  const { body } = new Response(data);
+  const readable = body!.pipeThrough(new DecompressionStream(format));
+  const buffer = await new Response(readable).arrayBuffer();
   return new Uint8Array(buffer);
 }
 
 /**
  * Decodes Uint8Array data compressed with the Run-Length Encoding format.
 */
-export function rleDecode(data: Uint8Array, decompressedLength: number){
+export function decodeRLE(data: Uint8Array, decompressedLength: number){
   const compressedLength = data.byteLength;
   const result = new Uint8Array(decompressedLength);
   let readOffset = 0;

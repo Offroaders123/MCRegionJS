@@ -1,4 +1,4 @@
-import { inflateRaw, rleDecode } from "./compression.js";
+import { decompress, decodeRLE } from "./compression.js";
 
 export interface CompressionHeader {
   isRLE: boolean;
@@ -42,8 +42,8 @@ export class Chunk {
     const { decompressedLength } = this.readCompressionHeader(data);
 
     const compressedData = data.subarray(12);
-    const RLECompressedData = await inflateRaw(compressedData);
-    const decompressedData = rleDecode(RLECompressedData,decompressedLength);
+    const RLECompressedData = await decompress(compressedData,"deflate-raw");
+    const decompressedData = decodeRLE(RLECompressedData,decompressedLength);
 
     return decompressedData;
   }
