@@ -1,7 +1,5 @@
-// @ts-check
-
 import { readFile, writeFile } from "node:fs/promises";
-import { inflateRaw, rld } from "../dist/compression.js";
+import { inflateRaw, rleDecode } from "../src/compression.js";
 
 const decoder = new TextDecoder();
 
@@ -17,7 +15,7 @@ const data = await readFile(new URL("./chunk/chunk.bin",import.meta.url))
   return { compressed, decompressed, data: result };
 })
 .then(({ compressed, decompressed, data }) => {
-  const result = Buffer.from(rld(data,decompressed));
+  const result = Buffer.from(rleDecode(data,decompressed));
   console.log(compressed,decompressed,"\n");
   return result;
 });

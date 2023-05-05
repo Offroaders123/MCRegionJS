@@ -1,10 +1,15 @@
 {
   "name": "mcregionjs",
   "version": "0.3.0",
+  "private": true,
   "description": "An experimental testing setup for my Gamedata Parser project!",
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --project ./tsconfig.build.json",
+    "dev": "tsc -w"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Offroaders123/MCRegionJS.git"
@@ -15,12 +20,12 @@
     "url": "https://github.com/Offroaders123/MCRegionJS/issues"
   },
   "homepage": "https://github.com/Offroaders123/MCRegionJS#readme",
-  "devDependencies": {
-    "@types/node": "^18.11.9",
-    "typescript": "^4.9.3"
-  },
   "dependencies": {
-    "nbtify": "^1.12.0"
+    "nbtify": "^1.20.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.4"
   },
   "sideEffects": false
 }

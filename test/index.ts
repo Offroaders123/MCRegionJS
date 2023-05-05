@@ -1,8 +1,6 @@
-// @ts-check
-
 import * as fs from "node:fs/promises";
 import * as NBT from "nbtify";
-import { Region } from "../dist/index.js";
+import { Region } from "../src/index.js";
 
 const data = await fs.readFile(new URL("./world/r.0.0.mcr",import.meta.url))
   .then(buffer => new Uint8Array(buffer));
