@@ -1,7 +1,7 @@
-import { readLocations } from "./location.js";
+import { readChunks } from "./chunk.js";
 
 export async function readRegion(data: Uint8Array){
-  for (const location of readLocations(data)){
-    console.log(location);
+  for await (const chunk of readChunks(data)){
+    console.log(chunk);
   }
 }
