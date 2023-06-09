@@ -1,4 +1,4 @@
-import { decompress, decodeRLE } from "./compression.js";
+import { decompress, runLengthDecode } from "./compression.js";
 import { readLocations } from "./location.js";
 
 export interface Chunk {}
@@ -65,7 +65,7 @@ async function decompressChunk(data: Uint8Array): Promise<Uint8Array | null> {
 
   const compressedData = data.subarray(COMPRESSION_HEADER_LENGTH);
   const RLECompressedData = await decompress(compressedData,"deflate-raw");
-  const decompressedData = decodeRLE(RLECompressedData,decompressedLength);
+  const decompressedData = runLengthDecode(RLECompressedData,decompressedLength);
 
   return decompressedData;
 }
