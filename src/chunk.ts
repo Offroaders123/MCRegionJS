@@ -1,3 +1,4 @@
+import { read } from "nbtify";
 import { decompress, runLengthDecode } from "./compression.js";
 import { readLocations } from "./location.js";
 
@@ -8,6 +9,16 @@ export async function* readChunks(data: Uint8Array): AsyncGenerator<Chunk,void,v
     if (chunk === null) continue;
     const header = readHeader(chunk);
     console.log(header);
+
+    for (let i = chunk.byteLength; i > 0; i--){
+      try {
+        const nbt = await read(chunk.subarray(i),{ name: "", endian: "big", compression: null, bedrockLevel: null });
+        console.log(nbt.data,"\n");
+        break;
+      } catch (error){
+        continue;
+      }
+    }
   }
 }
 

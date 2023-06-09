@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/Offroaders123/MCRegionJS#readme",
   "dependencies": {
-    "nbtify": "^1.44.0"
+    "nbtify": "^1.44.1"
   },
   "devDependencies": {
     "@types/node": "^20.2.5",
