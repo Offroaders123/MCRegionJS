@@ -10,16 +10,16 @@ export function runLengthDecode(data: Uint8Array, decompressedLength: number): U
   let writeOffset = 0;
 
   while (readOffset < compressedLength){
-    const suspectedTag = data[readOffset];
+    const suspectedTag = data[readOffset]!;
     readOffset++;
 
     if (suspectedTag === 255){
-      const length = data[readOffset];
+      const length = data[readOffset]!;
       readOffset++;
       let value = 255;
 
       if (length >= 3){
-        value = data[readOffset];
+        value = data[readOffset]!;
         readOffset++;
       }
 
