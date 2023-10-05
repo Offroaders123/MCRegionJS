@@ -8,6 +8,7 @@ export async function* readChunks(data: Uint8Array): AsyncGenerator<Chunk,void,v
   for await (const chunk of getChunk(data)){
     if (chunk === null) continue;
     const header = readHeader(chunk);
+    if (header.Format !== 12) continue;
     console.log(header);
 
     for (let i = chunk.byteLength; i > 0; i--){
@@ -19,6 +20,7 @@ export async function* readChunks(data: Uint8Array): AsyncGenerator<Chunk,void,v
         continue;
       }
     }
+    break;
   }
 }
 
