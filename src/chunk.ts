@@ -1,6 +1,5 @@
 import { read } from "nbtify";
 import { decompress, runLengthDecode } from "./compression.js";
-import { readLocations } from "./location.js";
 
 export interface Chunk {}
 
