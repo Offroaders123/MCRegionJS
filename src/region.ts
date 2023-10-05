@@ -21,7 +21,7 @@ export interface Location {
 }
 
 export function* readLocations(region: Uint8Array): Generator<Location,void,void> {
-  const view = new DataView(region.buffer,region.byteOffset,region.byteLength);
+  const view = new DataView(region.buffer,region.byteOffset,LOCATIONS_LENGTH);
 
   for (let i = 0; i < LOCATIONS_LENGTH; i += LOCATION_LENGTH){
     const byteOffset = (view.getUint32(i) >> 8) * LOCATIONS_LENGTH;
@@ -37,7 +37,7 @@ export const TIMESTAMPS_LENGTH = 4096;
 export type Timestamp = number;
 
 export function* readTimestamps(region: Uint8Array): Generator<Timestamp,void,void> {
-  const view = new DataView(region.buffer,region.byteOffset,region.byteLength);
+  const view = new DataView(region.buffer,region.byteOffset,TIMESTAMPS_LENGTH);
 
   for (let i = LOCATIONS_LENGTH; i < LOCATIONS_LENGTH + TIMESTAMPS_LENGTH; i += TIMESTAMP_LENGTH){
     yield view.getUint32(i);
