@@ -6,8 +6,8 @@ export interface Location {
   byteLength: number;
 }
 
-export function* readLocations(data: Uint8Array): Generator<Location,void,void> {
-  const view = new DataView(data.buffer,data.byteOffset,data.byteLength);
+export function* readLocations(region: Uint8Array): Generator<Location,void,void> {
+  const view = new DataView(region.buffer,region.byteOffset,region.byteLength);
 
   for (let i = 0; i < LOCATIONS_LENGTH; i += LOCATION_LENGTH){
     const byteOffset = (view.getUint32(i) >> 8) * LOCATIONS_LENGTH;

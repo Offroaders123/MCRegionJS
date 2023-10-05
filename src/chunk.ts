@@ -44,13 +44,6 @@ function readHeader(data: Uint8Array): Header {
   return { Format, X, Y, LastUpdate, Inhabited };
 }
 
-async function* getChunk(data: Uint8Array): AsyncGenerator<Uint8Array | null,void,void> {
-  for (const { byteOffset, byteLength } of readLocations(data)){
-    if (byteLength === 0) yield null;
-    yield decompressChunk(data.subarray(byteOffset,byteOffset + byteLength));
-  }
-}
-
 const COMPRESSION_HEADER_LENGTH = 12;
 
 interface CompressionHeader {
