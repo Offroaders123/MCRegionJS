@@ -10,3 +10,6 @@ console.log(region.length);
 
 // const timestamps = readTimestamps(data);
 // console.log(...timestamps);
+
+region[0] = null;
+region[1] = new Uint8Array();

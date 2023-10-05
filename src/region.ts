@@ -1,7 +1,9 @@
-export type Region = Entry[];
+export interface Region extends ReadonlyArray<Entry> {
+  [index: number]: Entry;
+}
 
 export function readRegion(region: Uint8Array): Region {
-  return [...readEntry(region)];
+  return Object.seal([...readEntry(region)]);
 }
 
 export type Entry = Uint8Array | null;
