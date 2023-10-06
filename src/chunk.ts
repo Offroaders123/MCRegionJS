@@ -1,7 +1,7 @@
 import { read, Int32 } from "nbtify";
 import { decompress, runLengthDecode } from "./compression.js";
 
-import type { IntTag, LongTag, StringTag, NBTData } from "nbtify";
+import type { IntTag, ShortTag, LongTag, StringTag, NBTData } from "nbtify";
 import type { Region, Entry } from "./region.js";
 
 /* These types should eventually be derived from Region-Types. */
@@ -14,6 +14,8 @@ export interface ChunkData {
   Y: IntTag;
   LastUpdate: LongTag;
   Inhabited: LongTag;
+  Blocks: ShortTag[];
+  Submerged: ShortTag[];
   TileEntities: Entity[];
   TileTicks: TileTick[];
 }
@@ -60,6 +62,8 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
   const Y = new Int32(view.getUint32(6));
   const LastUpdate = view.getBigUint64(10);
   const Inhabited = view.getBigUint64(18);
+  const Blocks: ShortTag[] = [];
+  const Submerged: ShortTag[] = [];
 
   // console.log({ Format, X, Y, LastUpdate, Inhabited });
 
@@ -72,7 +76,9 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
         X,
         Y,
         LastUpdate,
-        Inhabited
+        Inhabited,
+        Blocks,
+        Submerged
       } satisfies Partial<ChunkData>);
       return nbt;
     } catch (error){
