@@ -1,26 +1,30 @@
 import { read } from "nbtify";
 import { decompress, runLengthDecode } from "./compression.js";
 
+import type { Region, Entry } from "./region.js";
+
 export interface Chunk {}
 
-export async function* readChunks(data: Uint8Array): AsyncGenerator<Chunk,void,void> {
-  for await (const chunk of getChunk(data)){
-    if (chunk === null) continue;
+export async function readChunks(data: Region): Promise<(Chunk | null)[]> {
+  return Promise.all(data.map(async chunk => {
+    chunk = await decompressChunk(chunk);
+    if (chunk === null) return null;
     const header = readHeader(chunk);
-    if (header.Format !== 12) continue;
+    // if (header.Format !== 12) return null;
     console.log(header);
 
     for (let i = chunk.byteLength; i > 0; i--){
       try {
         const nbt = await read(chunk.subarray(i),{ name: "", endian: "big", compression: null, bedrockLevel: null });
-        console.log(nbt.data,"\n");
-        break;
+        // console.log(nbt.data,"\n");
+        return nbt;
       } catch (error){
         continue;
       }
     }
-    break;
-  }
+
+    return null;
+  }));
 }
 
 interface Header {
@@ -63,8 +67,8 @@ function readCompressionHeader(data: Uint8Array): CompressionHeader {
   return { isRLE, compressedLength, RLECompressedLength, decompressedLength };
 }
 
-async function decompressChunk(data: Uint8Array): Promise<Uint8Array | null> {
-  if (data.byteLength < COMPRESSION_HEADER_LENGTH) return null;
+async function decompressChunk(data: Entry): Promise<Entry> {
+  if (data === null || data.byteLength < COMPRESSION_HEADER_LENGTH) return null;
 
   const { decompressedLength } = readCompressionHeader(data);
 

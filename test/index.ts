@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { readRegion } from "../src/index.js";
+import { readRegion, readChunks } from "../src/index.js";
 
 const data = await readFile(new URL("./world/r.0.0.mcr",import.meta.url));
 console.log(data);
@@ -11,5 +11,6 @@ console.log(region.length);
 // const timestamps = readTimestamps(data);
 // console.log(...timestamps);
 
-region[0] = null;
-region[1] = new Uint8Array();
+const chunks = await readChunks(region);
+console.log(chunks);
+console.log(chunks.length);
