@@ -27,26 +27,6 @@ export async function readChunks(data: Region): Promise<(Chunk | null)[]> {
   }));
 }
 
-interface Header {
-  Format: number;
-  X: number;
-  Y: number;
-  LastUpdate: bigint;
-  Inhabited: bigint;
-}
-
-function readHeader(data: Uint8Array): Header {
-  const view = new DataView(data.buffer,data.byteOffset,data.byteLength);
-
-  const Format = view.getUint16(0);
-  const X = view.getUint32(2);
-  const Y = view.getUint32(6);
-  const LastUpdate = view.getBigUint64(10);
-  const Inhabited = view.getBigUint64(18);
-
-  return { Format, X, Y, LastUpdate, Inhabited };
-}
-
 const COMPRESSION_HEADER_LENGTH = 12;
 
 interface CompressionHeader {
@@ -77,4 +57,24 @@ async function decompressChunk(data: Entry): Promise<Entry> {
   const decompressedData = runLengthDecode(RLECompressedData,decompressedLength);
 
   return decompressedData;
+}
+
+interface Header {
+  Format: number;
+  X: number;
+  Y: number;
+  LastUpdate: bigint;
+  Inhabited: bigint;
+}
+
+function readHeader(data: Uint8Array): Header {
+  const view = new DataView(data.buffer,data.byteOffset,data.byteLength);
+
+  const Format = view.getUint16(0);
+  const X = view.getUint32(2);
+  const Y = view.getUint32(6);
+  const LastUpdate = view.getBigUint64(10);
+  const Inhabited = view.getBigUint64(18);
+
+  return { Format, X, Y, LastUpdate, Inhabited };
 }
