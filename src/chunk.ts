@@ -1,10 +1,12 @@
 import { read, Int32 } from "nbtify";
 import { decompress, runLengthDecode } from "./compression.js";
 
-import type { IntTag, LongTag, NBTData } from "nbtify";
+import type { IntTag, LongTag, StringTag, NBTData } from "nbtify";
 import type { Region, Entry } from "./region.js";
 
-export type Chunk = NBTData<ChunkData> | null;
+/* These types should eventually be derived from Region-Types. */
+
+export type Chunk = NBTData<ChunkData>;
 
 export interface ChunkData {
   Format: IntTag;
@@ -12,9 +14,26 @@ export interface ChunkData {
   Y: IntTag;
   LastUpdate: LongTag;
   Inhabited: LongTag;
+  TileEntities: Entity[];
+  TileTicks: TileTick[];
 }
 
-export async function readChunks(region: Region): Promise<Chunk[]> {
+export declare interface Entity {
+  id: StringTag;
+  x: IntTag;
+  y: IntTag;
+}
+
+export declare interface TileTick {
+  i: StringTag;
+  p: IntTag;
+  t: IntTag;
+  x: IntTag;
+  y: IntTag;
+  z: IntTag;
+}
+
+export async function readChunks(region: Region): Promise<(Chunk | null)[]> {
   return Promise.all(region.map(readEntry));
 }
 
