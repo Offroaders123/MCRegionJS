@@ -1,11 +1,20 @@
-import { read } from "nbtify";
+import { read, Int32 } from "nbtify";
 import { decompress, runLengthDecode } from "./compression.js";
 
+import type { IntTag, LongTag, NBTData } from "nbtify";
 import type { Region, Entry } from "./region.js";
 
-export interface Chunk {}
+export type Chunk = NBTData<ChunkData> | null;
 
-export async function readChunks(region: Region): Promise<(Chunk | null)[]> {
+export interface ChunkData {
+  Format: IntTag;
+  X: IntTag;
+  Y: IntTag;
+  LastUpdate: LongTag;
+  Inhabited: LongTag;
+}
+
+export async function readChunks(region: Region): Promise<Chunk[]> {
   return Promise.all(region.map(readEntry));
 }
 
@@ -27,18 +36,25 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
 
   view = new DataView(decompressedEntry.buffer,decompressedEntry.byteOffset,decompressedEntry.byteLength);
 
-  const Format = view.getUint16(0);
-  const X = view.getUint32(2);
-  const Y = view.getUint32(6);
+  const Format = new Int32(view.getUint16(0));
+  const X = new Int32(view.getUint32(2));
+  const Y = new Int32(view.getUint32(6));
   const LastUpdate = view.getBigUint64(10);
   const Inhabited = view.getBigUint64(18);
 
-  console.log({ Format, X, Y, LastUpdate, Inhabited });
+  // console.log({ Format, X, Y, LastUpdate, Inhabited });
 
   for (let i = decompressedEntry.byteLength; i > 0; i--){
     try {
-      const nbt = await read<Chunk>(decompressedEntry.subarray(i),{ name: "", endian: "big", compression: null, bedrockLevel: null });
+      const nbt = await read<ChunkData>(decompressedEntry.subarray(i),{ name: "", endian: "big", compression: null, bedrockLevel: null });
       // console.log(nbt.data,"\n");
+      Object.assign(nbt.data,{
+        Format,
+        X,
+        Y,
+        LastUpdate,
+        Inhabited
+      } satisfies Partial<ChunkData>);
       return nbt;
     } catch (error){
       continue;
