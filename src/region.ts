@@ -3,12 +3,12 @@ export interface Region extends ReadonlyArray<Entry> {
 }
 
 export function readRegion(region: Uint8Array): Region {
-  return Object.seal([...readEntry(region)]);
+  return Object.seal([...readEntries(region)]);
 }
 
 export type Entry = Uint8Array | null;
 
-export function* readEntry(region: Uint8Array): Generator<Entry,void,void> {
+export function* readEntries(region: Uint8Array): Generator<Entry,void,void> {
   for (const { byteOffset, byteLength } of readLocations(region)){
     yield byteLength !== 0 ? region.subarray(byteOffset,byteOffset + byteLength) : null;
   }

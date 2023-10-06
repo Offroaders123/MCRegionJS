@@ -5,17 +5,17 @@ import type { Region, Entry } from "./region.js";
 
 export interface Chunk {}
 
-export async function readChunks(data: Region): Promise<(Chunk | null)[]> {
-  return Promise.all(data.map(async chunk => {
-    chunk = await decompressChunk(chunk);
-    if (chunk === null) return null;
-    const header = readHeader(chunk);
+export async function readChunks(region: Region): Promise<(Chunk | null)[]> {
+  return Promise.all(region.map(async entry => {
+    entry = await decompressChunk(entry);
+    if (entry === null) return null;
+    const header = readHeader(entry);
     // if (header.Format !== 12) return null;
     console.log(header);
 
-    for (let i = chunk.byteLength; i > 0; i--){
+    for (let i = entry.byteLength; i > 0; i--){
       try {
-        const nbt = await read(chunk.subarray(i),{ name: "", endian: "big", compression: null, bedrockLevel: null });
+        const nbt = await read(entry.subarray(i),{ name: "", endian: "big", compression: null, bedrockLevel: null });
         // console.log(nbt.data,"\n");
         return nbt;
       } catch (error){
@@ -30,33 +30,33 @@ export async function readChunks(data: Region): Promise<(Chunk | null)[]> {
 const COMPRESSION_HEADER_LENGTH = 12;
 
 interface CompressionHeader {
-  isRLE: boolean;
+  rle: boolean;
   compressedLength: number;
-  RLECompressedLength: number;
+  rleCompressedLength: number;
   decompressedLength: number;
 }
 
-function readCompressionHeader(data: Uint8Array): CompressionHeader {
-  const view = new DataView(data.buffer,data.byteOffset,data.byteLength);
+function readCompressionHeader(entry: Uint8Array): CompressionHeader {
+  const view = new DataView(entry.buffer,entry.byteOffset,entry.byteLength);
 
-  const isRLE = Boolean(view.getUint8(0) >> 7);
+  const rle = Boolean(view.getUint8(0) >> 7);
   const compressedLength = view.getUint32(0) & 0x3FFFFFFF;
   const decompressedLength = view.getUint32(4);
-  const RLECompressedLength = view.getUint32(8);
+  const rleCompressedLength = view.getUint32(8);
 
-  return { isRLE, compressedLength, RLECompressedLength, decompressedLength };
+  return { rle, compressedLength, rleCompressedLength, decompressedLength };
 }
 
-async function decompressChunk(data: Entry): Promise<Entry> {
-  if (data === null || data.byteLength < COMPRESSION_HEADER_LENGTH) return null;
+async function decompressChunk(entry: Entry): Promise<Entry> {
+  if (entry === null || entry.byteLength < COMPRESSION_HEADER_LENGTH) return null;
 
-  const { decompressedLength } = readCompressionHeader(data);
+  const { decompressedLength } = readCompressionHeader(entry);
 
-  const compressedData = data.subarray(COMPRESSION_HEADER_LENGTH);
-  const RLECompressedData = await decompress(compressedData,"deflate-raw");
-  const decompressedData = runLengthDecode(RLECompressedData,decompressedLength);
+  const compressedEntry = entry.subarray(COMPRESSION_HEADER_LENGTH);
+  const rleCompressedEntry = await decompress(compressedEntry,"deflate-raw");
+  const decompressedEntry = runLengthDecode(rleCompressedEntry,decompressedLength);
 
-  return decompressedData;
+  return decompressedEntry;
 }
 
 interface Header {
