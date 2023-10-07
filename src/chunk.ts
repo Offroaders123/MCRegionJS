@@ -1,7 +1,7 @@
-import { read, Int32 } from "nbtify";
+import { read, Int32, NBTData } from "nbtify";
 import { decompress, runLengthDecode } from "./compression.js";
 
-import type { IntTag, ShortTag, LongTag, StringTag, NBTData } from "nbtify";
+import type { IntTag, ShortTag, LongTag, StringTag } from "nbtify";
 import type { Region, Entry } from "./region.js";
 
 /* These types should eventually be derived from Region-Types. */
@@ -16,8 +16,8 @@ export interface ChunkData {
   Inhabited: LongTag;
   Blocks: ShortTag[];
   Submerged: ShortTag[];
-  TileEntities: Entity[];
-  TileTicks: TileTick[];
+  // TileEntities: Entity[];
+  // TileTicks: TileTick[];
 }
 
 export declare interface Entity {
@@ -65,26 +65,5 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
   const Blocks: ShortTag[] = [];
   const Submerged: ShortTag[] = [];
 
-  // console.log({ Format, X, Y, LastUpdate, Inhabited });
-
-  for (let i = decompressedEntry.byteLength; i > 0; i--){
-    try {
-      const nbt = await read<ChunkData>(decompressedEntry.subarray(i),{ name: "", endian: "big", compression: null, bedrockLevel: null });
-      // console.log(nbt.data,"\n");
-      Object.assign(nbt.data,{
-        Format,
-        X,
-        Y,
-        LastUpdate,
-        Inhabited,
-        Blocks,
-        Submerged
-      } satisfies Partial<ChunkData>);
-      return nbt;
-    } catch (error){
-      continue;
-    }
-  }
-
-  return null;
+  return new NBTData<ChunkData>({ Format, X, Y, LastUpdate, Inhabited, Blocks, Submerged });
 }
