@@ -16,6 +16,9 @@ export interface ChunkData {
   Inhabited: LongTag;
   Blocks: ShortTag[];
   Submerged: ShortTag[];
+  DataGroupCount: number;
+  SkyLight: Uint8Array;
+  BlockLight: Uint8Array;
   // TileEntities: Entity[];
   // TileTicks: TileTick[];
 }
@@ -85,7 +88,7 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
   view = new DataView(view.buffer,view.byteOffset + 50,view.byteLength - 50);
 
   if (maxSectionAddress !== 0){
-    parseBlocks: for (let section = 0; section < 16; section++){
+    parseBlocks: for (let section = 0; section < sectionJumpTable.length; section++){
       const address = sectionJumpTable[section]!;
       view = new DataView(view.buffer,view.byteOffset + 76 + address,view.byteLength - 76 - address);
       if (address === maxSectionAddress){
@@ -204,7 +207,41 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
     }
   }
 
-  return new NBTData<ChunkData>({ Format, X, Y, LastUpdate, Inhabited, Blocks, Submerged });
+  const dataArray = Array(4) as [Uint8Array,Uint8Array,Uint8Array,Uint8Array];
+  for (let i = 0; i < dataArray.length; i++){
+    const item = new Uint8Array();
+    // const item = this->readx128(inputData);
+    dataArray.push(item);
+  }
+
+  const DataGroupCount = dataArray[0].length + dataArray[1].length + dataArray[2].length + dataArray[3].length;
+
+  const segments = [ 0, 0, 1, 1 ] as const;
+  const offsets = [ 0, 0x4000, 0, 0x4000 ] as const;
+  const lightsData = [
+    new Uint8Array(0x8000),
+    new Uint8Array(0x8000)
+  ] as const;
+
+  for (let j = 0; j < 4; j++){
+    let startingIndex = offsets[j]!;
+    let currentLightSegment = segments[j]!;
+    const data = dataArray[j]!;
+
+    for (let k = 0; k < 0x80; k++){
+      const headerValue = data[k]!;
+      if (headerValue === 0x80 || headerValue === 0x81){
+        copyByte128(lightsData[currentLightSegment], k * 0x80 + startingIndex, (headerValue === 0x80) ? 0 : 255);
+      } else {
+        copyArray128(data, ((headerValue + 1) * 0x80), lightsData[currentLightSegment], k * 0x80 + startingIndex);
+      }
+    }
+  }
+
+  const SkyLight = lightsData[0]; //java stores skylight (and blocklight?) the same way LCE does, it does not need to be converted
+  const BlockLight = lightsData[1];
+
+  return new NBTData<ChunkData>({ Format, X, Y, LastUpdate, Inhabited, Blocks, Submerged, DataGroupCount, SkyLight, BlockLight });
 }
 
 function parse<_T>(_offset: number, _grid: Uint16Array): boolean { return undefined as unknown as boolean; }
@@ -212,3 +249,6 @@ function parseWithLayers<_T>(_offset: number, _grid: Uint16Array, _submergedGrid
 function singleBlock(_block1: number, _block2: number, _data: Uint16Array){}
 function putBlocks(_blocks: ShortTag[], _data: Uint16Array, _offset: number){}
 function maxBlocks(_block: number, _data: Uint16Array){}
+
+function copyByte128(_a: Uint8Array, _b: number, _c: number){}
+function copyArray128(_a: Uint8Array, _b: number, _c: Uint8Array, _d: number){}
