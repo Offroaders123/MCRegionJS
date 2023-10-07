@@ -63,26 +63,26 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
   const LastUpdate = view.getBigUint64(10);
   const Inhabited = view.getBigUint64(18);
 
-  view = new DataView(decompressedEntry.buffer,view.byteOffset + 26,view.byteLength - 26);
+  view = new DataView(view.buffer,view.byteOffset + 26,view.byteLength - 26);
   console.log(Buffer.from(view.buffer).subarray(view.byteOffset,view.byteOffset + 34));
 
   const Blocks: ShortTag[] = Array(0x20000);
   const Submerged: ShortTag[] = Array(0x20000);
+
   const maxSectionAddress = view.getUint16(0) << 8;
   console.log(maxSectionAddress);
 
   const sectionJumpTable = new Uint16Array(16);
-
   for (let i = 0; i < sectionJumpTable.length; i++){
     const address = view.getUint16(i + 2);
     sectionJumpTable[i] = address;
   }
   console.log(sectionJumpTable);
 
-  view = new DataView(decompressedEntry.buffer,view.byteOffset + 34,view.byteLength - 34);
-
-  const sizeOfSubChunks = new Uint8Array(view.buffer,view.byteOffset,16);
+  const sizeOfSubChunks = new Uint8Array(view.buffer,view.byteOffset + 34,16);
   console.log(sizeOfSubChunks);
+
+  view = new DataView(view.buffer,view.byteOffset + 50,view.byteLength - 50);
 
   return new NBTData<ChunkData>({ Format, X, Y, LastUpdate, Inhabited, Blocks, Submerged });
 }
