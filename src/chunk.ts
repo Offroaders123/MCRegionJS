@@ -211,7 +211,7 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
   for (let i = 0; i < dataArray.length; i++){
     const item = new Uint8Array();
     // const item = this->readx128(inputData);
-    dataArray.push(item);
+    dataArray[i] = item;
   }
 
   const DataGroupCount = dataArray[0].length + dataArray[1].length + dataArray[2].length + dataArray[3].length;
