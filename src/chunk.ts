@@ -1,7 +1,7 @@
 import { read, Int32, NBTData } from "nbtify";
 import { decompress, runLengthDecode } from "./compression.js";
 
-import type { IntTag, ShortTag, LongTag, StringTag } from "nbtify";
+import type { IntTag, LongTag, StringTag } from "nbtify";
 import type { Region, Entry } from "./region.js";
 
 /* These types should eventually be derived from Region-Types. */
@@ -14,8 +14,8 @@ export interface ChunkData {
   Y: IntTag;
   LastUpdate: LongTag;
   Inhabited: LongTag;
-  Blocks: ShortTag[];
-  Submerged: ShortTag[];
+  Blocks: Uint16Array;
+  Submerged: Uint16Array;
   DataGroupCount: number;
   SkyLight: Uint8Array;
   BlockLight: Uint8Array;
@@ -69,8 +69,8 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
   view = new DataView(view.buffer,view.byteOffset + 26,view.byteLength - 26);
   console.log(Buffer.from(view.buffer).subarray(view.byteOffset,view.byteOffset + 34));
 
-  const Blocks: ShortTag[] = Array(0x20000);
-  const Submerged: ShortTag[] = Array(0x20000);
+  const Blocks = new Uint16Array(0x20000);
+  const Submerged = new Uint16Array(0x20000);
 
   const maxSectionAddress = view.getUint16(0) << 8;
   console.log(maxSectionAddress);
@@ -140,14 +140,14 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
               if (gridPosition + 12 >= view.byteLength) /*[[unlikely]]*/ {
                 break parseBlocks;
               }
-                if (!parse<1>(view.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
+                if (!parse(1,view.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
                   break parseBlocks;
                 }
             } else if (format === 0x3){ // 1 bit + submerged
               if (gridPosition + 20 >= view.byteLength) /*[[unlikely]]*/ {
                 break parseBlocks;
               }
-                if (!parseWithLayers<1>(view.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
+                if (!parseWithLayers(1,view.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
                   break parseBlocks;
                 }
               putBlocks(Submerged, submergedData, offsetInBlockWrite);
@@ -155,14 +155,14 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
               if (gridPosition + 24 >= view.byteLength) /*[[unlikely]]*/ {
                 break parseBlocks;
               }
-                if (!parse<2>(view.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
+                if (!parse(2,view.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
                   break parseBlocks;
                 }
             } else if (format === 0x5){ // 2 bit + submerged
               if (gridPosition + 40 >= view.byteLength) /*[[unlikely]]*/ {
                 break parseBlocks;
               }
-                if (!parseWithLayers<2>(view.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
+                if (!parseWithLayers(2,view.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
                   break parseBlocks;
                 }
               putBlocks(Submerged, submergedData, offsetInBlockWrite);
@@ -170,14 +170,14 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
               if (gridPosition + 40 >= view.byteLength) /*[[unlikely]]*/ {
                 break parseBlocks;
               }
-                if (!parse<3>(view.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
+                if (!parse(3,view.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
                   break parseBlocks;
                 }
             } else if (format === 0x7){ // 3 bit + submerged
               if (gridPosition + 64 >= view.byteLength) /*[[unlikely]]*/ {
                 break parseBlocks;
               }
-                if (!parseWithLayers<3>(view.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
+                if (!parseWithLayers(3,view.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
                   break parseBlocks;
                 }
               putBlocks(Submerged, submergedData, offsetInBlockWrite);
@@ -185,14 +185,14 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
               if (gridPosition + 64 >= view.byteLength) /*[[unlikely]]*/ {
                 break parseBlocks;
               }
-                if (!parse<4>(view.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
+                if (!parse(4,view.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
                   break parseBlocks;
                 }
             } else if (format === 0x9){ // 4bit + submerged
               if (gridPosition + 96 >= view.byteLength) /*[[unlikely]]*/ {
                 break parseBlocks;
               }
-                if (!parseWithLayers<4>(view.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
+                if (!parseWithLayers(4,view.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
                   break parseBlocks;
                 }
               putBlocks(Submerged, submergedData, offsetInBlockWrite);
@@ -243,12 +243,105 @@ export async function readEntry(entry: Entry): Promise<Chunk | null> {
 
   return new NBTData<ChunkData>({ Format, X, Y, LastUpdate, Inhabited, Blocks, Submerged, DataGroupCount, SkyLight, BlockLight });
 }
+function parse(BitsPerBlock: number, buffer: Uint8Array, grid: Uint16Array): boolean {
+  const size = (1 << BitsPerBlock) * 2;
+  const palette = new Uint16Array(size);
+  // std::copy_n(buffer, size, palette.begin());
+  for (let i = 0; i < 8; i++){
+    const v = new Uint8Array(BitsPerBlock);
+    for (let j = 0; j < BitsPerBlock; j++){
+      v[j] = buffer[size + i + j * 8]!;
+    }
+    for (let j = 0; j < 8; j++){
+      const mask = 0x80 >> j;
+      let idx = 0;
+      for (let k = 0; k < BitsPerBlock; k++){
+        idx |= ((v[k]! & mask) >> (7 - j)) << k;
+      }
+      if (idx >= size) /*[[unlikely]]*/ {
+        return false;
+      }
+      const gridIndex = (i * 8 + j) * 2;
+      const paletteIndex = idx * 2;
+      grid[gridIndex] = palette[paletteIndex]!;
+      grid[gridIndex + 1] = palette[paletteIndex + 1]!;
+    }
+  }
+  return true;
+}
 
-function parse<_T>(_offset: number, _grid: Uint16Array): boolean { return undefined as unknown as boolean; }
-function parseWithLayers<_T>(_offset: number, _grid: Uint16Array, _submergedGrid: Uint16Array): boolean { return undefined as unknown as boolean; }
-function singleBlock(_block1: number, _block2: number, _data: Uint16Array){}
-function putBlocks(_blocks: ShortTag[], _data: Uint16Array, _offset: number){}
-function maxBlocks(_block: number, _data: Uint16Array){}
+function parseWithLayers(BitsPerBlock: number, buffer: Uint8Array, grid: Uint16Array, submergedGrid: Uint16Array): boolean {
+  const size = (1 << BitsPerBlock) * 2;
+  const palette = new Uint16Array(size);
+  // std::copy_n(buffer, size, palette.begin());
+  palette.set(buffer,size);
+  for (let i = 0; i < 8; i++){
+    const v = new Uint8Array(BitsPerBlock);
+    const vSubmerged = new Uint8Array(BitsPerBlock);
+    for (let j = 0; j < BitsPerBlock; j++){
+      const offset = size + i + j * 8;
+      v[j] = buffer[offset]!;
+      vSubmerged[j] = buffer[offset + BitsPerBlock * 8]!;
+    }
+    for (let j = 0; j < 8; j++){
+      const mask = 0x80 >> j;
+      let idx = 0;
+      let idxSubmerged = 0;
+      for (let k = 0; k < BitsPerBlock; k++){
+        idx |= ((v[k]! & mask) >> (7 - j)) << k;
+        idxSubmerged |= ((vSubmerged[k]! & mask) >> (7 - j)) << k;
+      }
+      if (idx >= size || idxSubmerged >= size) /*[[unlikely]]*/ {
+        return false;
+      }
+      const gridIndex = (i * 8 + j) * 2;
+      const paletteIndex = idx * 2;
+      const paletteIndexSubmerged = idxSubmerged * 2;
+      grid[gridIndex] = palette[paletteIndex]!;
+      grid[gridIndex + 1] = palette[paletteIndex + 1]!;
+      submergedGrid[gridIndex] = palette[paletteIndexSubmerged]!;
+      submergedGrid[gridIndex + 1] = palette[paletteIndexSubmerged + 1]!;
+    }
+  }
+  return true;
+}
 
-function copyByte128(_a: Uint8Array, _b: number, _c: number){}
-function copyArray128(_a: Uint8Array, _b: number, _c: Uint8Array, _d: number){}
+function singleBlock(v1: number, v2: number, grid: Uint16Array): void {
+  for (let i = 0; i < 128; i++){
+    if (i & 1){
+      grid[i] = v2;
+    } else {
+      grid[i] = v1;
+    }
+  }
+}
+
+function putBlocks(writeVector: Uint16Array, readArray: Uint16Array, writeOffset: number): void {
+  let readOffset = 0;
+  for (let z = 0; z < 4; z++){
+    for (let x = 0; x < 4; x++){
+      for (let y = 0; y < 4; y++){
+        const currentOffset = z * 0x2000 + x * 0x200 + y * 2;
+        writeVector[currentOffset + writeOffset] = readArray[readOffset++]!;
+        writeVector[currentOffset + writeOffset + 1] = readArray[readOffset++]!;
+      }
+    }
+  }
+}
+
+function maxBlocks(buffer: Uint8Array, grid: Uint16Array): void {
+  // std::copy_n(buffer, 128, grid);
+  grid.set(buffer,128);
+}
+
+function copyByte128(writeVector: Uint8Array, writeOffset: number, value: number): void {
+  for (let i = 0; i < 0x80; i++){
+    writeVector[writeOffset + i] = value;
+  }
+}
+
+function copyArray128(readVector: Uint8Array, readOffset: number, writeVector: Uint8Array, writeOffset: number): void {
+  for (let i = 0; i < 0x80; i++){
+    writeVector[writeOffset + i] = readVector[readOffset + i]!;
+  }
+}
