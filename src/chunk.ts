@@ -101,6 +101,7 @@ class AquaticParser {
     this.LCE_ChunkData.inhabitedTime = this.#inputData.getBigUint64(18);
     this.seek(26);
     this.parseBlocks();
+    // return this.LCE_ChunkData;
     this.readLights();
     this.LCE_ChunkData.heightMap = this.read256();
     this.LCE_ChunkData.terrainPopulated = new Int16(this.#inputData.getUint16(0));
@@ -187,10 +188,10 @@ class AquaticParser {
 
 	readIntoVector(amount: number): Uint8Array {
 		const returnVector = new Uint8Array(amount);
-		for (let i = 0; i < amount; i++){
+		for (let i = 0; i < returnVector.byteLength; i++){
       returnVector[i] = this.#inputData.getUint8(i);
 		}
-    this.seek(amount);
+    this.seek(returnVector.byteLength);
 		return returnVector;
 	}
 
@@ -204,11 +205,12 @@ class AquaticParser {
       const address: number = this.#inputData.getUint16(i);
       sectionJumpTable[i] = address;
     }
+    this.seek(sectionJumpTable.byteLength);
     const sizeOfSubChunks: Uint8Array = this.readIntoVector(16);
     if (maxSectionAddress === 0){
       return;
     }
-    for (let section = 0; section < 16; section++){
+    for (let section = 0; section < sectionJumpTable.length; section++){
       let address: number = sectionJumpTable[section]!;
       this.seek(76 + address);
       if (address === maxSectionAddress){
