@@ -47,7 +47,7 @@ const COMPRESSION_HEADER_LENGTH = 12;
 export async function readEntry(entry: Entry): Promise<Chunk | null> {
   if (entry === null || entry.byteLength < COMPRESSION_HEADER_LENGTH) return null;
 
-  let view = new DataView(entry.buffer,entry.byteOffset,entry.byteLength);
+  const view = new DataView(entry.buffer,entry.byteOffset,entry.byteLength);
 
   const rle = Boolean(view.getUint8(0) >> 7);
   const compressedLength = view.getUint32(0) & 0x3FFFFFFF;
@@ -101,12 +101,12 @@ class AquaticParser {
     this.LCE_ChunkData.inhabitedTime = this.#inputData.getBigUint64(18);
     this.seek(26);
     this.parseBlocks();
-    return this.LCE_ChunkData;
     this.readLights();
-    this.LCE_ChunkData.heightMap = this.read256(this.#inputData);
+    this.LCE_ChunkData.heightMap = this.read256();
     this.LCE_ChunkData.terrainPopulated = new Int16(this.#inputData.getUint16(0));
-    this.LCE_ChunkData.biomes = this.read256(this.#inputData);
-    await this.readNBTData(this.#inputData);
+    this.seek(2);
+    this.LCE_ChunkData.biomes = this.read256();
+    await this.readNBTData();
     return LCE_universal.convertLCE1_13RegionToUniveral(this.LCE_ChunkData, dimension, fixes);
   }
 
@@ -117,9 +117,9 @@ class AquaticParser {
     return LCE_universal.convertLCE1_13RegionToUniveralForAccess(this.LCE_ChunkData, dimension, fixes);
   }
 
-  async readNBTData(inputData: DataView): Promise<void> {
-    if (inputData.getUint8(0) === 0xA){
-      const array1 = new Uint8Array(inputData.buffer,inputData.byteOffset,inputData.byteLength);
+  async readNBTData(): Promise<void> {
+    if (this.#inputData.getUint8(0) === 0xA){
+      const array1 = new Uint8Array(this.#inputData.buffer,this.#inputData.byteOffset,this.#inputData.byteLength);
       this.LCE_ChunkData.NBTData = await read(array1);
     }
   }
@@ -128,21 +128,24 @@ class AquaticParser {
     this.#inputData = new DataView(this.#inputData.buffer,this.#inputData.byteOffset + byteLength,this.#inputData.byteLength - byteLength);
   }
 
-  read256(inputData: DataView): Uint8Array {
-    const array1: Uint8Array = this.readIntoVector(inputData,256);
+  read256(): Uint8Array {
+    const array1: Uint8Array = this.readIntoVector(256);
     return array1;
   }
 
-  readx128(inputData: DataView): Uint8Array {
-    const num: number = inputData.getUint32(0);
-    const array1: Uint8Array = this.readIntoVector(inputData,(num + 1) * 0x80);
+  readx128(): Uint8Array {
+    console.log(Buffer.from(this.#inputData.buffer,this.#inputData.byteOffset,this.#inputData.byteLength));
+    const num: number = this.#inputData.getUint32(0);
+    console.log(num);
+    this.seek(4);
+    const array1: Uint8Array = this.readIntoVector((num + 1) * 0x80);
     return array1;
   }
 
   readLights(): void {
     const dataArray = new Array(4) as [Uint8Array,Uint8Array,Uint8Array,Uint8Array];
-    for (let i = 0; i < 4; i++){
-      const item: Uint8Array = this.readx128(this.#inputData);
+    for (let i = 0; i < dataArray.length; i++){
+      const item: Uint8Array = this.readx128();
       dataArray[i] = item;
     }
     this.LCE_ChunkData.DataGroupCount = new Int32(dataArray[0].length + dataArray[1].length + dataArray[2].length + dataArray[3].length);
@@ -182,22 +185,26 @@ class AquaticParser {
     }
   }
 
-  readIntoVector(inputData: DataView, byteLength: number): Uint8Array {
-    const array1 = new Uint8Array(inputData.buffer,inputData.byteOffset,byteLength);
-    this.seek(byteLength);
-    return array1;
-  }
+	readIntoVector(amount: number): Uint8Array {
+		const returnVector = new Uint8Array(amount);
+		for (let i = 0; i < amount; i++){
+      returnVector[i] = this.#inputData.getUint8(i);
+		}
+    this.seek(amount);
+		return returnVector;
+	}
 
   parseBlocks(): void {
     this.LCE_ChunkData.blocks = new Uint16Array(0x20000);
     this.LCE_ChunkData.submerged = new Uint16Array(0x20000);
     const maxSectionAddress: number = this.#inputData.getUint16(0) << 8;
+    this.seek(2);
     const sectionJumpTable = new Uint16Array(16);//read 16 shorts so 32 bytes
-    for (let i = 0; i < 16; i++){
-      const address: number = this.#inputData.getUint16(i + 2);
+    for (let i = 0; i < sectionJumpTable.length; i++){
+      const address: number = this.#inputData.getUint16(i);
       sectionJumpTable[i] = address;
     }
-    const sizeOfSubChunks: Uint8Array = this.readIntoVector(this.#inputData,16);
+    const sizeOfSubChunks: Uint8Array = this.readIntoVector(16);
     if (maxSectionAddress === 0){
       return;
     }
@@ -210,7 +217,7 @@ class AquaticParser {
       if (!sizeOfSubChunks[section]){
         continue;
       }
-      const sectionHeader: Uint8Array = this.readIntoVector(this.#inputData,0x80);
+      const sectionHeader: Uint8Array = this.readIntoVector(0x80);
       for (let gx = 0; gx < 4; gx++){
         for (let gz = 0; gz < 4; gz++){
           for (let gy = 0; gy < 4; gy++){
