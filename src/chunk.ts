@@ -129,6 +129,10 @@ class AquaticParser {
     this.#inputData = new DataView(this.#inputData.buffer,this.#inputData.byteOffset + byteLength,this.#inputData.byteLength - byteLength);
   }
 
+  rewind(): void {
+    this.#inputData = new DataView(this.#inputData.buffer);
+  }
+
   read256(): Uint8Array {
     const array1: Uint8Array = this.readIntoVector(256);
     return array1;
@@ -199,20 +203,25 @@ class AquaticParser {
     this.LCE_ChunkData.blocks = new Uint16Array(0x20000);
     this.LCE_ChunkData.submerged = new Uint16Array(0x20000);
     const maxSectionAddress: number = this.#inputData.getUint16(0) << 8;
+    console.log(maxSectionAddress);
     this.seek(2);
     const sectionJumpTable = new Uint16Array(16);//read 16 shorts so 32 bytes
     for (let i = 0; i < sectionJumpTable.length; i++){
-      const address: number = this.#inputData.getUint16(i);
+      const address: number = this.#inputData.getUint16(i * 2);
       sectionJumpTable[i] = address;
     }
+    console.log(sectionJumpTable);
     this.seek(sectionJumpTable.byteLength);
     const sizeOfSubChunks: Uint8Array = this.readIntoVector(16);
     if (maxSectionAddress === 0){
       return;
     }
+    console.log("sectionJumpTable - length:",sectionJumpTable.length);
     for (let section = 0; section < sectionJumpTable.length; section++){
       let address: number = sectionJumpTable[section]!;
+      this.rewind();
       this.seek(76 + address);
+      console.log("address:",address,"offset:",this.#inputData.byteOffset);
       if (address === maxSectionAddress){
         break;
       }
