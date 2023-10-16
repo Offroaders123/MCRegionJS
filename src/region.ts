@@ -16,6 +16,7 @@ export function* readEntries(region: Uint8Array): Generator<Entry,void,void> {
 
 export const LOCATION_LENGTH = 4;
 export const LOCATIONS_LENGTH = 4096;
+export const LOCATIONS_OFFSET = 0;
 
 export interface Location {
   byteOffset: number;
@@ -25,7 +26,7 @@ export interface Location {
 export function* readLocations(region: Uint8Array): Generator<Location,void,void> {
   const view = new DataView(region.buffer,region.byteOffset,LOCATIONS_LENGTH);
 
-  for (let i = 0; i < LOCATIONS_LENGTH; i += LOCATION_LENGTH){
+  for (let i = LOCATIONS_OFFSET; i < LOCATIONS_OFFSET + LOCATIONS_LENGTH; i += LOCATION_LENGTH){
     const byteOffset = (view.getUint32(i) >> 8) * LOCATIONS_LENGTH;
     const byteLength = view.getUint8(i + 3) * LOCATIONS_LENGTH;
 
@@ -35,13 +36,14 @@ export function* readLocations(region: Uint8Array): Generator<Location,void,void
 
 export const TIMESTAMP_LENGTH = 4;
 export const TIMESTAMPS_LENGTH = 4096;
+export const TIMESTAMPS_OFFSET = LOCATIONS_LENGTH;
 
 export type Timestamp = number;
 
 export function* readTimestamps(region: Uint8Array): Generator<Timestamp,void,void> {
   const view = new DataView(region.buffer,region.byteOffset,TIMESTAMPS_LENGTH);
 
-  for (let i = LOCATIONS_LENGTH; i < LOCATIONS_LENGTH + TIMESTAMPS_LENGTH; i += TIMESTAMP_LENGTH){
+  for (let i = TIMESTAMPS_OFFSET; i < TIMESTAMPS_OFFSET + TIMESTAMPS_LENGTH; i += TIMESTAMP_LENGTH){
     yield view.getUint32(i);
   }
 }
