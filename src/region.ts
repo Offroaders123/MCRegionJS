@@ -1,49 +1,38 @@
-export interface Region extends ReadonlyArray<Entry> {
-  [index: number]: Entry;
+export interface Region extends ReadonlyArray<Entry | null> {
+  [index: number]: Entry | null;
 }
 
 export function readRegion(region: Uint8Array): Region {
   return Object.seal([...readEntries(region)]);
 }
 
-export type Entry = Uint8Array | null;
-
-export function* readEntries(region: Uint8Array): Generator<Entry,void,void> {
-  for (const { byteOffset, byteLength } of readLocations(region)){
-    yield byteLength !== 0 ? region.subarray(byteOffset,byteOffset + byteLength) : null;
-  }
-}
-
-export const LOCATION_LENGTH = 4;
-export const LOCATIONS_LENGTH = 4096;
 export const LOCATIONS_OFFSET = 0;
+export const LOCATIONS_LENGTH = 4096;
+export const LOCATION_LENGTH = 4;
 
-export interface Location {
-  byteOffset: number;
-  byteLength: number;
+export const TIMESTAMPS_OFFSET = LOCATIONS_LENGTH;
+export const TIMESTAMPS_LENGTH = 4096;
+export const TIMESTAMP_LENGTH = 4;
+
+export interface Entry {
+  data: Uint8Array;
+  timestamp: number;
 }
 
-export function* readLocations(region: Uint8Array): Generator<Location,void,void> {
-  const view = new DataView(region.buffer,region.byteOffset,LOCATIONS_LENGTH);
+export function* readEntries(region: Uint8Array): Generator<Entry | null,void,void> {
+  const view = new DataView(region.buffer,region.byteOffset,region.byteLength);
 
   for (let i = LOCATIONS_OFFSET; i < LOCATIONS_OFFSET + LOCATIONS_LENGTH; i += LOCATION_LENGTH){
     const byteOffset = (view.getUint32(i) >> 8) * LOCATIONS_LENGTH;
     const byteLength = view.getUint8(i + 3) * LOCATIONS_LENGTH;
+    const timestamp = view.getUint32(i + TIMESTAMPS_OFFSET);
 
-    yield { byteOffset, byteLength };
-  }
-}
+    if (byteLength === 0){
+      yield null; continue;
+    }
 
-export const TIMESTAMP_LENGTH = 4;
-export const TIMESTAMPS_LENGTH = 4096;
-export const TIMESTAMPS_OFFSET = LOCATIONS_LENGTH;
+    const data = region.subarray(byteOffset,byteOffset + byteLength);
 
-export type Timestamp = number;
-
-export function* readTimestamps(region: Uint8Array): Generator<Timestamp,void,void> {
-  const view = new DataView(region.buffer,region.byteOffset,TIMESTAMPS_LENGTH);
-
-  for (let i = TIMESTAMPS_OFFSET; i < TIMESTAMPS_OFFSET + TIMESTAMPS_LENGTH; i += TIMESTAMP_LENGTH){
-    yield view.getUint32(i);
+    yield { data, timestamp };
   }
 }

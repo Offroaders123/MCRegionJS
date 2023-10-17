@@ -44,17 +44,17 @@ export async function readChunks(region: Region): Promise<(Chunk | null)[]> {
 
 const COMPRESSION_HEADER_LENGTH = 12;
 
-export async function readEntry(entry: Entry): Promise<Chunk | null> {
-  if (entry === null || entry.byteLength < COMPRESSION_HEADER_LENGTH) return null;
-
-  const view = new DataView(entry.buffer,entry.byteOffset,entry.byteLength);
+export async function readEntry(entry: Entry | null): Promise<Chunk | null> {
+  if (entry === null) return null;
+  const { data } = entry;
+  const view = new DataView(data.buffer,data.byteOffset,data.byteLength);
 
   const rle = Boolean(view.getUint8(0) >> 7);
   const compressedLength = view.getUint32(0) & 0x3FFFFFFF;
   const decompressedLength = view.getUint32(4);
   const rleCompressedLength = view.getUint32(8);
 
-  const compressedEntry = entry.subarray(COMPRESSION_HEADER_LENGTH);
+  const compressedEntry = data.subarray(COMPRESSION_HEADER_LENGTH);
   const rleCompressedEntry = await decompress(compressedEntry,"deflate-raw");
   const decompressedEntry = runLengthDecode(rleCompressedEntry,decompressedLength);
 
