@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { readRegion, readEntry } from "../src/index.js";
+import { readRegion, readChunks } from "../src/index.js";
 
 const REGION = new URL("./world/r.0.0.mcr",import.meta.url);
 
@@ -9,5 +9,6 @@ const region = readRegion(data);
 console.log(region[64]);
 console.log(region.length);
 
-const chunk = await readEntry(region[64]!);
-console.log(chunk);
+const chunks = await readChunks(region);
+console.log(chunks[64]);
+// console.log(chunks.length);
