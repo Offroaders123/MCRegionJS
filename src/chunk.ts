@@ -101,7 +101,7 @@ class AquaticParser {
     this.LCE_ChunkData.inhabitedTime = this.#inputData.getBigUint64(18);
     this.seek(26);
     this.parseBlocks();
-    // return this.LCE_ChunkData;
+    return this.LCE_ChunkData;
     this.readLights();
     this.LCE_ChunkData.heightMap = this.read256();
     this.LCE_ChunkData.terrainPopulated = new Int16(this.#inputData.getUint16(0));
@@ -139,9 +139,9 @@ class AquaticParser {
   }
 
   readx128(): Uint8Array {
-    console.log(Buffer.from(this.#inputData.buffer,this.#inputData.byteOffset,this.#inputData.byteLength));
+    // console.log(Buffer.from(this.#inputData.buffer,this.#inputData.byteOffset,this.#inputData.byteLength));
     const num: number = this.#inputData.getUint32(0);
-    console.log(num);
+    // console.log(num);
     this.seek(4);
     const array1: Uint8Array = this.readIntoVector((num + 1) * 0x80);
     return array1;
@@ -203,25 +203,25 @@ class AquaticParser {
     this.LCE_ChunkData.blocks = new Uint16Array(0x20000);
     this.LCE_ChunkData.submerged = new Uint16Array(0x20000);
     const maxSectionAddress: number = this.#inputData.getUint16(0) << 8;
-    console.log(maxSectionAddress);
+    // console.log(maxSectionAddress);
     this.seek(2);
     const sectionJumpTable = new Uint16Array(16);//read 16 shorts so 32 bytes
     for (let i = 0; i < sectionJumpTable.length; i++){
       const address: number = this.#inputData.getUint16(i * 2);
       sectionJumpTable[i] = address;
     }
-    console.log(sectionJumpTable);
+    // console.log(sectionJumpTable);
     this.seek(sectionJumpTable.byteLength);
     const sizeOfSubChunks: Uint8Array = this.readIntoVector(16);
     if (maxSectionAddress === 0){
       return;
     }
-    console.log("sectionJumpTable - length:",sectionJumpTable.length);
+    // console.log("sectionJumpTable - length:",sectionJumpTable.length);
     for (let section = 0; section < sectionJumpTable.length; section++){
       let address: number = sectionJumpTable[section]!;
       this.rewind();
       this.seek(76 + address);
-      console.log("address:",address,"offset:",this.#inputData.byteOffset);
+      // console.log("address:",address,"offset:",this.#inputData.byteOffset);
       if (address === maxSectionAddress){
         break;
       }
