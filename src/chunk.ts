@@ -54,20 +54,20 @@ export async function readEntry(entry: Entry | null): Promise<Chunk | null> {
 }
 
 interface AquaticChunkData {
-  blocks: Uint16Array;
-  blockLight: Uint8Array;
-  skyLight: Uint8Array;
-  heightMap: Uint8Array;
-  biomes: Uint8Array;
-  NBTData: NBTData;
-  terrainPopulated: ShortTag;
-  lastUpdate: LongTag;
-  inhabitedTime: LongTag;
-  DataGroupCount: IntTag;
   version: ShortTag;
   chunkX: IntTag;
   chunkZ: IntTag;
+  lastUpdate: LongTag;
+  inhabitedTime: LongTag;
+  blocks: Uint16Array;
   submerged: Uint16Array;
+  DataGroupCount: IntTag;
+  skyLight: Uint8Array;
+  blockLight: Uint8Array;
+  heightMap: Uint8Array;
+  terrainPopulated: ShortTag;
+  biomes: Uint8Array;
+  NBTData: NBTData;
 }
 
 /**
@@ -76,6 +76,11 @@ interface AquaticChunkData {
  * @deprecated
 */
 type UniversalChunkFormat = Chunk;
+
+/**
+ * @deprecated
+*/
+type LCEFixes = unknown;
 
 class AquaticParser {
   #inputData!: DataView;
@@ -92,7 +97,7 @@ class AquaticParser {
   //   //free(LCE_ChunkData);
   // }
 
-  async ParseChunk(entry: Uint8Array, dimension: number, fixes: LCEFixes): Promise<UniversalChunkFormat> {
+  async ParseChunk(entry: Uint8Array, _dimension?: number, _fixes?: LCEFixes): Promise<UniversalChunkFormat> {
     this.#inputData = new DataView(entry.buffer,entry.byteOffset,entry.byteLength);
     this.LCE_ChunkData.version = new Int16(this.#inputData.getUint16(0));
     this.LCE_ChunkData.chunkX = new Int32(this.#inputData.getUint32(2));
@@ -101,21 +106,23 @@ class AquaticParser {
     this.LCE_ChunkData.inhabitedTime = this.#inputData.getBigUint64(18);
     this.seek(26);
     this.parseBlocks();
-    return this.LCE_ChunkData;
+    // return this.LCE_ChunkData;
     this.readLights();
     this.LCE_ChunkData.heightMap = this.read256();
     this.LCE_ChunkData.terrainPopulated = new Int16(this.#inputData.getUint16(0));
     this.seek(2);
     this.LCE_ChunkData.biomes = this.read256();
     await this.readNBTData();
-    return LCE_universal.convertLCE1_13RegionToUniveral(this.LCE_ChunkData, dimension, fixes);
+    return this.LCE_ChunkData;
+    // return LCE_universal.convertLCE1_13RegionToUniveral(this.LCE_ChunkData, dimension, fixes);
   }
 
-  ParseChunkForAccess(entry: Uint8Array, dimension: number, fixes: LCEFixes): UniversalChunkFormat {
+  ParseChunkForAccess(entry: Uint8Array, _dimension?: number, _fixes?: LCEFixes): UniversalChunkFormat {
     this.#inputData = new DataView(entry.buffer,entry.byteOffset,entry.byteLength);
     this.seek(26);
     this.parseBlocks();
-    return LCE_universal.convertLCE1_13RegionToUniveralForAccess(this.LCE_ChunkData, dimension, fixes);
+    return this.LCE_ChunkData;
+    // return LCE_universal.convertLCE1_13RegionToUniveralForAccess(this.LCE_ChunkData, dimension, fixes);
   }
 
   async readNBTData(): Promise<void> {
@@ -139,9 +146,9 @@ class AquaticParser {
   }
 
   readx128(): Uint8Array {
-    // console.log(Buffer.from(this.#inputData.buffer,this.#inputData.byteOffset,this.#inputData.byteLength));
-    const num: number = this.#inputData.getUint32(0);
-    // console.log(num);
+    console.log(Buffer.from(this.#inputData.buffer,this.#inputData.byteOffset,this.#inputData.byteLength));
+    const num: number = this.#inputData.getUint32(0/*,true*/);
+    console.log(num);
     this.seek(4);
     const array1: Uint8Array = this.readIntoVector((num + 1) * 0x80);
     return array1;
@@ -203,7 +210,7 @@ class AquaticParser {
     this.LCE_ChunkData.blocks = new Uint16Array(0x20000);
     this.LCE_ChunkData.submerged = new Uint16Array(0x20000);
     const maxSectionAddress: number = this.#inputData.getUint16(0) << 8;
-    // console.log(maxSectionAddress);
+    console.log(maxSectionAddress);
     this.seek(2);
     const sectionJumpTable = new Uint16Array(16);//read 16 shorts so 32 bytes
     for (let i = 0; i < sectionJumpTable.length; i++){
