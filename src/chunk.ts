@@ -6,9 +6,9 @@ import type { Region, Entry } from "./region.js";
 
 /* These types should eventually be derived from Region-Types. */
 
-export type Chunk = NBTData<ChunkData>;
+export type Chunk = AquaticChunkData;
 
-export interface ChunkData {
+interface ChunkData {
   Format: IntTag;
   X: IntTag;
   Y: IntTag;
@@ -64,10 +64,18 @@ interface AquaticChunkData {
   lastUpdate: LongTag;
   inhabitedTime: LongTag;
   DataGroupCount: IntTag;
+  version: ShortTag;
   chunkX: IntTag;
   chunkZ: IntTag;
   submerged: Uint16Array;
 }
+
+/**
+ * Temporary alias/placeholder from UtterEvergreen1's examples.
+ * 
+ * @deprecated
+*/
+type UniversalChunkFormat = Chunk;
 
 class AquaticParser {
   #inputData!: DataView;
@@ -84,8 +92,9 @@ class AquaticParser {
   //   //free(LCE_ChunkData);
   // }
 
-  async ParseChunk(entry: Uint8Array, dimension: number, fixes: LCEFixes): UniversalChunkFormat {
+  async ParseChunk(entry: Uint8Array, dimension: number, fixes: LCEFixes): Promise<UniversalChunkFormat> {
     this.#inputData = new DataView(entry.buffer,entry.byteOffset,entry.byteLength);
+    this.LCE_ChunkData.version = new Int16(this.#inputData.getUint16(0));
     this.LCE_ChunkData.chunkX = new Int32(this.#inputData.getUint32(2));
     this.LCE_ChunkData.chunkZ = new Int32(this.#inputData.getUint32(6));
     this.LCE_ChunkData.lastUpdate = this.#inputData.getBigUint64(10);
