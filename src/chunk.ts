@@ -42,14 +42,12 @@ export async function readChunks(region: Region): Promise<(Chunk | null)[]> {
   return Promise.all(region.map(readEntry));
 }
 
-export async function readEntry(entry: Entry | null): Promise<Uint8Array> {
+export async function readEntry(entry: Entry | null): Promise<Chunk | null> {
   if (entry === null) return null;
   const { data, decompressedLength } = entry;
 
   const rleCompressedEntry = await decompress(data,"deflate-raw");
   const decompressedEntry = runLengthDecode(rleCompressedEntry,decompressedLength);
-
-  return decompressedEntry;
 
   const parser = new AquaticParser();
   return parser.ParseChunk(decompressedEntry);
