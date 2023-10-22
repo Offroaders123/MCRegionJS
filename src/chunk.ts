@@ -83,7 +83,6 @@ type UniversalChunkFormat = Chunk;
 type LCEFixes = unknown;
 
 class AquaticParser {
-  #inputData!: DataView;
   LCE_ChunkData: AquaticChunkData = {} as AquaticChunkData;
 
   // AquaticParser::~AquaticParser()
@@ -97,67 +96,51 @@ class AquaticParser {
   //   //free(LCE_ChunkData);
   // }
 
-  async ParseChunk(entry: Uint8Array, _dimension?: number, _fixes?: LCEFixes): Promise<UniversalChunkFormat> {
-    this.#inputData = new DataView(entry.buffer,entry.byteOffset,entry.byteLength);
-    this.LCE_ChunkData.version = new Int16(this.#inputData.getUint16(0));
-    this.LCE_ChunkData.chunkX = new Int32(this.#inputData.getUint32(2));
-    this.LCE_ChunkData.chunkZ = new Int32(this.#inputData.getUint32(6));
-    this.LCE_ChunkData.lastUpdate = this.#inputData.getBigUint64(10);
-    this.LCE_ChunkData.inhabitedTime = this.#inputData.getBigUint64(18);
-    this.seek(26);
-    this.parseBlocks();
+  async ParseChunk(inputData: DataInputManager, _dimension?: number, _fixes?: LCEFixes): Promise<UniversalChunkFormat> {
+    this.LCE_ChunkData.version = new Int16(inputData.readShort());
+    this.LCE_ChunkData.chunkX = new Int32(inputData.readInt());
+    this.LCE_ChunkData.chunkZ = new Int32(inputData.readInt());
+    this.LCE_ChunkData.lastUpdate = inputData.readLong();
+    this.LCE_ChunkData.inhabitedTime = inputData.readLong();
+    this.parseBlocks(inputData);
     // return this.LCE_ChunkData;
-    this.readLights();
-    this.LCE_ChunkData.heightMap = this.read256();
-    this.LCE_ChunkData.terrainPopulated = new Int16(this.#inputData.getUint16(0));
-    this.seek(2);
-    this.LCE_ChunkData.biomes = this.read256();
-    await this.readNBTData();
+    this.readLights(inputData);
+    this.LCE_ChunkData.heightMap = this.read256(inputData);
+    this.LCE_ChunkData.terrainPopulated = new Int16(inputData.readShort());
+    this.LCE_ChunkData.biomes = this.read256(inputData);
+    this.readNBTData(inputData);
     return this.LCE_ChunkData;
     // return LCE_universal.convertLCE1_13RegionToUniveral(this.LCE_ChunkData, dimension, fixes);
   }
 
-  ParseChunkForAccess(entry: Uint8Array, _dimension?: number, _fixes?: LCEFixes): UniversalChunkFormat {
-    this.#inputData = new DataView(entry.buffer,entry.byteOffset,entry.byteLength);
-    this.seek(26);
-    this.parseBlocks();
+  ParseChunkForAccess(inputData: DataInputManager, _dimension?: number, _fixes?: LCEFixes): UniversalChunkFormat {
+    inputData.seek(26);
+    this.parseBlocks(inputData);
     return this.LCE_ChunkData;
     // return LCE_universal.convertLCE1_13RegionToUniveralForAccess(this.LCE_ChunkData, dimension, fixes);
   }
 
-  async readNBTData(): Promise<void> {
-    if (this.#inputData.getUint8(0) === 0xA){
-      const array1 = new Uint8Array(this.#inputData.buffer,this.#inputData.byteOffset,this.#inputData.byteLength);
-      this.LCE_ChunkData.NBTData = await read(array1);
+  async readNBTData(inputData: DataInputManager): Promise<void> {
+    if (inputData.data === 0xA) {
+      this.LCE_ChunkData.NBTData = await read(inputData);
     }
   }
 
-  seek(byteLength: number): void {
-    this.#inputData = new DataView(this.#inputData.buffer,this.#inputData.byteOffset + byteLength,this.#inputData.byteLength - byteLength);
-  }
-
-  rewind(): void {
-    this.#inputData = new DataView(this.#inputData.buffer);
-  }
-
-  read256(): Uint8Array {
-    const array1: Uint8Array = this.readIntoVector(256);
+  read256(inputData: DataInputManager): Uint8Array {
+    const array1: Uint8Array = inputData.readIntoVector(256);
     return array1;
   }
 
-  readx128(): Uint8Array {
-    console.log(Buffer.from(this.#inputData.buffer,this.#inputData.byteOffset,this.#inputData.byteLength));
-    const num: number = this.#inputData.getUint32(0/*,true*/);
-    console.log(num);
-    this.seek(4);
-    const array1: Uint8Array = this.readIntoVector((num + 1) * 0x80);
+  readx128(inputData: DataInputManager): Uint8Array {
+    const num: number = inputData.readInt();
+    const array1: Uint8Array = inputData.readIntoVector((num + 1) * 0x80);
     return array1;
   }
 
-  readLights(): void {
+  readLights(inputData: DataInputManager): void {
     const dataArray = new Array(4) as [Uint8Array,Uint8Array,Uint8Array,Uint8Array];
     for (let i = 0; i < dataArray.length; i++){
-      const item: Uint8Array = this.readx128();
+      const item: Uint8Array = this.readx128(inputData);
       dataArray[i] = item;
     }
     this.LCE_ChunkData.DataGroupCount = new Int32(dataArray[0].length + dataArray[1].length + dataArray[2].length + dataArray[3].length);
@@ -197,37 +180,25 @@ class AquaticParser {
     }
   }
 
-	readIntoVector(amount: number): Uint8Array {
-		const returnVector = new Uint8Array(amount);
-		for (let i = 0; i < returnVector.byteLength; i++){
-      returnVector[i] = this.#inputData.getUint8(i);
-		}
-    this.seek(returnVector.byteLength);
-		return returnVector;
-	}
-
-  parseBlocks(): void {
+  parseBlocks(inputData: DataInputManager): void {
     this.LCE_ChunkData.blocks = new Uint16Array(0x20000);
     this.LCE_ChunkData.submerged = new Uint16Array(0x20000);
-    const maxSectionAddress: number = this.#inputData.getUint16(0) << 8;
+    const maxSectionAddress: number = inputData.readShort() << 8;
     console.log(maxSectionAddress);
-    this.seek(2);
     const sectionJumpTable = new Uint16Array(16);//read 16 shorts so 32 bytes
     for (let i = 0; i < sectionJumpTable.length; i++){
-      const address: number = this.#inputData.getUint16(i * 2);
+      const address: number = inputData.readShort();
       sectionJumpTable[i] = address;
     }
     // console.log(sectionJumpTable);
-    this.seek(sectionJumpTable.byteLength);
-    const sizeOfSubChunks: Uint8Array = this.readIntoVector(16);
+    const sizeOfSubChunks: Uint8Array = inputData.readIntoVector(16);
     if (maxSectionAddress === 0){
       return;
     }
     // console.log("sectionJumpTable - length:",sectionJumpTable.length);
     for (let section = 0; section < sectionJumpTable.length; section++){
       let address: number = sectionJumpTable[section]!;
-      this.rewind();
-      this.seek(76 + address);
+      inputData.seek(76 + address);
       // console.log("address:",address,"offset:",this.#inputData.byteOffset);
       if (address === maxSectionAddress){
         break;
@@ -235,7 +206,7 @@ class AquaticParser {
       if (!sizeOfSubChunks[section]){
         continue;
       }
-      const sectionHeader: Uint8Array = this.readIntoVector(0x80);
+      const sectionHeader: Uint8Array = inputData.readIntoVector(0x80);
       for (let gx = 0; gx < 4; gx++){
         for (let gz = 0; gz < 4; gz++){
           for (let gy = 0; gy < 4; gy++){
@@ -258,78 +229,78 @@ class AquaticParser {
             if (format === 0){
               this.singleBlock(v1, v2, grid);
             } else if (format === 0xf){//read 128 bytes for normal blocks plus 128 bytes for submerged blocks
-              /*if (gridPosition + 128 >= this.#inputData.byteLength){
+              /*if (gridPosition + 128 >= inputData.size_of_data){
                 return;
               }
-              ParseFormatF(this.#inputData.byteOffset + gridPosition, grid);*/
-              if (gridPosition + 256 >= this.#inputData.byteLength) /*[[unlikely]]*/ {
+              ParseFormatF(inputData.start_of_data + gridPosition, grid);*/
+              if (gridPosition + 256 >= inputData.size_of_data) /*[[unlikely]]*/ {
                 return;
               }
-              this.maxBlocks(this.#inputData.byteOffset + gridPosition, grid);
-              this.maxBlocks(this.#inputData.byteOffset + gridPosition + 128, submergedData);
+              this.maxBlocks(inputData.start_of_data + gridPosition, grid);
+              this.maxBlocks(inputData.start_of_data + gridPosition + 128, submergedData);
               this.putBlocks(this.LCE_ChunkData.submerged, submergedData, offsetInBlockWrite);
             } else if (format === 0xe){//read 128 bytes for normal blocks 
-              if (gridPosition + 128 >= this.#inputData.byteLength) /*[[unlikely]]*/ {
+              if (gridPosition + 128 >= inputData.size_of_data) /*[[unlikely]]*/ {
                 return;
               }
-              this.maxBlocks(this.#inputData.byteOffset + gridPosition, grid);
+              this.maxBlocks(inputData.start_of_data + gridPosition, grid);
             } else if (format === 0x2){ // 1 bit
-              if (gridPosition + 12 >= this.#inputData.byteLength) /*[[unlikely]]*/ {
+              if (gridPosition + 12 >= inputData.size_of_data) /*[[unlikely]]*/ {
                 return;
               }
-                if (!this.parse(1,this.#inputData.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
+                if (!this.parse(1,inputData.start_of_data + gridPosition, grid)) /*[[unlikely]]*/ {
                   return;
                 }
             } else if (format === 0x3){ // 1 bit + submerged
-              if (gridPosition + 20 >= this.#inputData.byteLength) /*[[unlikely]]*/ {
+              if (gridPosition + 20 >= inputData.size_of_data) /*[[unlikely]]*/ {
                 return;
               }
-                if (!this.parseWithLayers(1,this.#inputData.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
+                if (!this.parseWithLayers(1,inputData.start_of_data + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
                   return;
                 }
               this.putBlocks(this.LCE_ChunkData.submerged, submergedData, offsetInBlockWrite);
             } else if (format === 0x4){ // 2 bit
-              if (gridPosition + 24 >= this.#inputData.byteLength) /*[[unlikely]]*/ {
+              if (gridPosition + 24 >= inputData.size_of_data) /*[[unlikely]]*/ {
                 return;
               }
-                if (!this.parse(2,this.#inputData.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
+                if (!this.parse(2,inputData.start_of_data + gridPosition, grid)) /*[[unlikely]]*/ {
                   return;
                 }
             } else if (format === 0x5){ // 2 bit + submerged
-              if (gridPosition + 40 >= this.#inputData.byteLength) /*[[unlikely]]*/ {
+              if (gridPosition + 40 >= inputData.size_of_data) /*[[unlikely]]*/ {
                 return;
               }
-                if (!this.parseWithLayers(2,this.#inputData.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
+                if (!this.parseWithLayers(2,inputData.start_of_data + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
                   return;
                 }
               this.putBlocks(this.LCE_ChunkData.submerged, submergedData, offsetInBlockWrite);
             } else if (format === 0x6){ // 3 bit
-              if (gridPosition + 40 >= this.#inputData.byteLength) /*[[unlikely]]*/ {
+              if (gridPosition + 40 >= inputData.size_of_data) /*[[unlikely]]*/ {
                 return;
               }
-                if (!this.parse(3,this.#inputData.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
+                if (!this.parse(3,inputData.start_of_data + gridPosition, grid)) /*[[unlikely]]*/ {
                   return;
                 }
             } else if (format === 0x7){ // 3 bit + submerged
-              if (gridPosition + 64 >= this.#inputData.byteLength) /*[[unlikely]]*/ {
+              if (gridPosition + 64 >= inputData.size_of_data) /*[[unlikely]]*/ {
                 return;
               }
-                if (!this.parseWithLayers(3,this.#inputData.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
+                if (!this.parseWithLayers(3,inputData.start_of_data + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
                   return;
                 }
               this.putBlocks(this.LCE_ChunkData.submerged, submergedData, offsetInBlockWrite);
             } else if (format === 0x8){ // 4 bit
-              if (gridPosition + 64 >= this.#inputData.byteLength) /*[[unlikely]]*/ {
+              if (gridPosition + 64 >= inputData.size_of_data) /*[[unlikely]]*/ {
                 return;
               }
-                if (!this.parse(4,this.#inputData.byteOffset + gridPosition, grid)) /*[[unlikely]]*/ {
+                if (!this.parse(4,inputData.start_of_data + gridPosition, grid)) /*[[unlikely]]*/ {
                   return;
                 }
             } else if (format === 0x9){ // 4bit + submerged
-              if (gridPosition + 96 >= this.#inputData.byteLength) /*[[unlikely]]*/ {
+              if (gridPosition + 96 >= inputData.size_of_data) /*[[unlikely]]*/ {
                 return;
               }
-                if (!this.parseWithLayers(4,this.#inputData.byteOffset + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
+                if (!this.parseWithLayers(4,inputData.start_of_data + gridPosition, grid, submergedData)) /*[[unlikely]]*/ {
                   return;
                 }
               this.putBlocks(this.LCE_ChunkData.submerged, submergedData, offsetInBlockWrite);
