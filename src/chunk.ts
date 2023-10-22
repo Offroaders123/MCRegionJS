@@ -53,6 +53,275 @@ export async function readEntry(entry: Entry | null): Promise<Chunk | null> {
   return parser.ParseChunk(decompressedEntry);
 }
 
+class DataInputManager {
+  declare data: Uint8Array;
+  declare start_of_data: Uint8Array;
+  declare size_of_data: number;
+  declare errorAdvance: number;
+  declare shouldFree: boolean;
+  declare isLittle: boolean;
+
+  constructor(data_in: Uint8Array, size: number, shouldFreeIn: boolean) {
+    this.data = data_in;
+    this.start_of_data = this.data;
+    this.size_of_data = size;
+    this.errorAdvance = 0;
+    this.shouldFree = shouldFreeIn;
+    this.isLittle = false;//start writing in big endian
+  }
+
+  // ~DataInputManager() {
+  //   if (shouldFree) {
+  //     free(start_of_data);
+  //   }
+  // }
+
+  setLittleEndian(): void {
+    this.isLittle = true;
+  }
+
+  setBigEndian(): void {
+    this.isLittle = false;
+  }
+
+  seekStart(): void {
+    this.data = this.start_of_data;
+  }
+
+  seekEnd(): void {
+    this.data = this.start_of_data + this.size_of_data - 1;
+  }
+
+  getPosition(): number {
+    return this.data - this.start_of_data;
+  }
+
+  isEndOfData(): boolean {
+    return this.data === this.start_of_data + this.size_of_data - 1;
+  }
+
+  incrementPointer(amount: number): void {/*this huge function will be for debugging, not in the real thing, the real thing will only be
+    this.data += amount or increamenting until reaches the end */
+    if (this.data + amount < this.start_of_data + this.size_of_data && this.data + amount >= this.start_of_data) /*[[likely]]*/ {
+      this.data += amount;
+    } else {
+      if (amount === 1){
+        //if (errorAdvance != 0) {
+          //printf("tried to advance pointer beyond the end or before the start\n");
+          //only needed to prevent NBT reads from overflowing
+        //}
+        this.errorAdvance++;
+      } else {
+        if (this.data + amount >= this.start_of_data + this.size_of_data){
+          //data += (size_of_data - getPosition());
+          this.seekEnd();
+          this.errorAdvance++;
+        } else if (this.data + amount <= this.start_of_data){
+          //data += (size_of_data - getPosition());
+          this.seekStart();
+          this.errorAdvance++;
+        }
+        //else {
+          //for (int x = 0; x <= amount; x++) {
+            /*if (data + x == start_of_data + size_of_data) {
+              data += x - 1;
+              if (errorAdvance != 0) {
+                printf("tried to advance pointer beyond the end\n");
+              }
+              errorAdvance++;
+            }
+            else if (data + x == start_of_data) {
+              data += x + 1;
+              if (errorAdvance != 0) {
+                printf("tried to advance pointer before the start\n");
+              }
+              errorAdvance++;
+            }*/
+          //}
+        //}
+      }
+    }
+  }
+
+  seek(pos: number): void {
+    this.data = this.start_of_data;
+    this.incrementPointer(pos);
+  }
+
+  readByte(): number {
+    const val: number = this.data[0]!;
+    this.incrementPointer(1);
+    return val;
+  }
+
+  readShort(): number {
+    let val: number;
+    if (this.isLittle) {
+      val = ((this.data[1]! << 8) | (this.data[0]!));
+    } else {
+      val = ((this.data[0]! << 8) | (this.data[1]!));
+    }
+    this.incrementPointer(2);
+    return val;
+  }
+
+  readInt24(): number {
+    let val: number = this.readInt();
+    if (this.isLittle){
+      val = val & 0x00FFFFFF;
+    } else {
+      val = (val & 0xFFFFFF00) >> 8;
+    }
+    this.incrementPointer(-1);//3 = 4 - 1
+    return val;
+  }
+
+  readInt24Le(isLittleIn: boolean): number {
+    const originalEndianType: boolean = this.isLittle;
+    this.isLittle = isLittleIn;
+    let val: number = this.readInt();
+    if (isLittleIn){
+      val = val & 0x00FFFFFF;
+    } else {
+      val = (val & 0xFFFFFF00) >> 8;
+    }
+    this.incrementPointer(-1);//3 = 4 - 1
+    this.isLittle = originalEndianType;
+    return val;
+  }
+
+  readInt(): number {
+    let val: number;
+    if (this.isLittle) {
+      val = ((this.data[3]! << 24) | (this.data[2]! << 16) | (this.data[1]! << 8) | (this.data[0]!));
+    } else {
+      val = ((this.data[0]! << 24) | (this.data[1]! << 16) | (this.data[2]! << 8) | (this.data[3]!));
+    }
+    this.incrementPointer(4);
+    return val;
+  }
+
+  readLong(): bigint {
+    let val: bigint;
+    if (this.isLittle){
+      val = BigInt((this.data[7]! << 56) | (this.data[6]! << 48) | (this.data[5]! << 40) | (this.data[4]! << 32) | (this.data[3]! << 24) | (this.data[2]! << 16) | (this.data[1]! << 8) | (this.data[0]!));
+    } else {
+      val = BigInt((this.data[0]! << 56) | (this.data[1]! << 48) | (this.data[2]! << 40) | (this.data[3]! << 32) | (this.data[4]! << 24) | (this.data[5]! << 16) | (this.data[6]! << 8) | (this.data[7]!));
+    }
+    this.incrementPointer(8);
+    return val;
+  }
+
+  readBoolean(): boolean {
+    const val: number = this.data[0]!;
+    this.incrementPointer(1);
+    return val !== 0;
+  }
+
+  readUTF(): string {
+    const length: number = this.readShort();
+    // std::string returnString((char*)data, length);
+    this.incrementPointer(length);
+    return returnString;
+  }
+
+  readString(): string {
+    let returnString: string = "";
+    let i: number = 1;
+    let nextChar: number;
+    while ((nextChar = this.readByte()) !== 0 && (i++ <= 0x7FFFFFFF)){
+      returnString += nextChar;
+    }
+    return returnString;
+  }
+
+  readStringByAmount(amount: number): string {
+    let returnString: string = "";
+    let strVec: number[] = [];
+    strVec.resize(amount + 1);
+    let str = strVec.data();
+    str[amount] = 0;
+
+    this.readOntoData(amount, str);
+    returnString = String(str);
+    return returnString;
+  }
+
+  readWString(): string {
+    let returnString: string = "";
+    let nextChar: number;
+    while ((nextChar = this.readShort()) !== 0){
+      returnString += nextChar;
+    }
+    return returnString;
+  }
+
+  readWStringByAmount(amount: number): string {
+    let returnString: string = "";
+    for (let i = 0; i < amount; i++){
+      let c: number = this.readShort();
+      if (c !== 0){
+        returnString += c;
+      }
+      //else {
+        //break;
+      //}
+    }
+    return returnString;
+  }
+
+  readFloat(): number {
+    const val: number = this.readInt();
+    return val;
+  }
+
+  readDouble(): number {
+    const val: bigint = this.readLong();
+    return Number(val);
+  }
+
+  readWithOffset(offset: number, amount: number): Uint8Array {
+    const val = new Uint8Array(amount);
+    this.incrementPointer(offset);
+    // memcpy(val, data, amount);
+    this.incrementPointer(amount);
+    return val;
+  }
+
+  read(amount: number): Uint8Array {
+    const val = new Uint8Array(amount);
+    // memcpy(val, data, amount);
+    this.incrementPointer(amount);
+    return val;
+  }
+
+  readOntoData(amount: number, dataIn: Uint8Array): void {
+    // memcpy(dataIn, data, amount);
+    this.incrementPointer(amount);
+  }
+
+  readIntoVector(amount: number): Uint8Array {
+    const returnVector = new Uint8Array(amount);
+    for (let i = 0; i < amount; i++){
+      // returnVector.push_back(*data);
+      returnVector[i] = this.data[i]!;
+      this.incrementPointer(1);
+    }
+    return returnVector;
+  }
+
+  readIntoVectorWithOffset(offset: number, amount: number): Uint8Array {
+    this.incrementPointer(offset);
+    const returnVector = new Uint8Array(amount);
+    for (let i = 0; i < amount; i++) {
+      // returnVector.push_back(*data);
+      returnVector[i] = this.data[i]!;
+      this.incrementPointer(1);
+    }
+    return returnVector;
+  }
+}
+
 interface AquaticChunkData {
   version: ShortTag;
   chunkX: IntTag;
@@ -121,8 +390,8 @@ class AquaticParser {
   }
 
   async readNBTData(inputData: DataInputManager): Promise<void> {
-    if (inputData.data === 0xA) {
-      this.LCE_ChunkData.NBTData = await read(inputData);
+    if (inputData.data[0] === 0xA) {
+      this.LCE_ChunkData.NBTData = await read(inputData.data);
     }
   }
 
