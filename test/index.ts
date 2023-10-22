@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { readRegion, readEntry } from "../src/index.js";
 
 const REGION = new URL("./world/r.0.0.mcr",import.meta.url);
@@ -12,3 +12,5 @@ const region = readRegion(data);
 const chunk = await readEntry(region[64]!);
 console.log(chunk);
 // console.log(chunks.length);
+
+await writeFile("./test/chunk/aquatic-chunk.bin",chunk);
