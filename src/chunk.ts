@@ -50,12 +50,12 @@ export async function readEntry(entry: Entry | null): Promise<Chunk | null> {
   const decompressedEntry = runLengthDecode(rleCompressedEntry,decompressedLength);
 
   const parser = new AquaticParser();
-  return parser.ParseChunk(decompressedEntry);
+  return parser.ParseChunk(new DataInputManager(decompressedEntry,decompressedEntry.byteLength,false));
 }
 
 class DataInputManager {
   declare data: Uint8Array;
-  declare start_of_data: Uint8Array;
+  declare start_of_data: number;
   declare size_of_data: number;
   declare errorAdvance: number;
   declare shouldFree: boolean;
@@ -63,7 +63,7 @@ class DataInputManager {
 
   constructor(data_in: Uint8Array, size: number, shouldFreeIn: boolean) {
     this.data = data_in;
-    this.start_of_data = this.data;
+    this.start_of_data = this.data.byteOffset;
     this.size_of_data = size;
     this.errorAdvance = 0;
     this.shouldFree = shouldFreeIn;
@@ -85,25 +85,26 @@ class DataInputManager {
   }
 
   seekStart(): void {
-    this.data = this.start_of_data;
+    this.data = new Uint8Array(this.data.buffer,this.start_of_data);
   }
 
   seekEnd(): void {
-    this.data = this.start_of_data + this.size_of_data - 1;
+    this.data = new Uint8Array(this.data.buffer,this.start_of_data + this.size_of_data - 1);
   }
 
   getPosition(): number {
-    return this.data - this.start_of_data;
+    return this.data.byteOffset - this.start_of_data;
   }
 
   isEndOfData(): boolean {
-    return this.data === this.start_of_data + this.size_of_data - 1;
+    return this.data.byteOffset === this.start_of_data + this.size_of_data - 1;
   }
 
   incrementPointer(amount: number): void {/*this huge function will be for debugging, not in the real thing, the real thing will only be
     this.data += amount or increamenting until reaches the end */
-    if (this.data + amount < this.start_of_data + this.size_of_data && this.data + amount >= this.start_of_data) /*[[likely]]*/ {
-      this.data += amount;
+    if (this.data.byteOffset + amount < this.start_of_data + this.size_of_data && this.data.byteOffset + amount >= this.start_of_data) /*[[likely]]*/ {
+      // this.data += amount;
+      this.data = new Uint8Array(this.data.buffer,this.data.byteOffset + amount,this.data.byteLength - amount);
     } else {
       if (amount === 1){
         //if (errorAdvance != 0) {
@@ -112,11 +113,11 @@ class DataInputManager {
         //}
         this.errorAdvance++;
       } else {
-        if (this.data + amount >= this.start_of_data + this.size_of_data){
+        if (this.data.byteOffset + amount >= this.start_of_data + this.size_of_data){
           //data += (size_of_data - getPosition());
           this.seekEnd();
           this.errorAdvance++;
-        } else if (this.data + amount <= this.start_of_data){
+        } else if (this.data.byteOffset + amount <= this.start_of_data){
           //data += (size_of_data - getPosition());
           this.seekStart();
           this.errorAdvance++;
@@ -144,7 +145,7 @@ class DataInputManager {
   }
 
   seek(pos: number): void {
-    this.data = this.start_of_data;
+    this.data = new Uint8Array(this.data.buffer,this.start_of_data);
     this.incrementPointer(pos);
   }
 
