@@ -373,7 +373,7 @@ class AquaticParser {
     this.LCE_ChunkData.lastUpdate = inputData.readLong();
     this.LCE_ChunkData.inhabitedTime = inputData.readLong();
     this.parseBlocks(inputData);
-    // return this.LCE_ChunkData;
+    return this.LCE_ChunkData;
     this.readLights(inputData);
     this.LCE_ChunkData.heightMap = this.read256(inputData);
     this.LCE_ChunkData.terrainPopulated = new Int16(inputData.readShort());
@@ -460,7 +460,7 @@ class AquaticParser {
       const address: number = inputData.readShort();
       sectionJumpTable[i] = address;
     }
-    // console.log(sectionJumpTable);
+    console.log(sectionJumpTable);
     const sizeOfSubChunks: Uint8Array = inputData.readIntoVector(16);
     if (maxSectionAddress === 0){
       return;
