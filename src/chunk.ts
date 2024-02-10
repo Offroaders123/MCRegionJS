@@ -1,7 +1,8 @@
 import { read, Int16, Int32, NBTData } from "nbtify";
 import { decompress, runLengthDecode } from "./compression.js";
 
-import type { ShortTag, IntTag, LongTag, StringTag } from "nbtify";
+import type { ShortTag, IntTag, LongTag } from "nbtify";
+import type { BlockEntity, TileTick } from "../Region-Types/src/legacy-console/index.js";
 import type { Region, Entry } from "./region.js";
 
 /* These types should eventually be derived from Region-Types. */
@@ -22,23 +23,8 @@ export interface ChunkData {
   heightMap: Uint8Array;
   terrainPopulated: ShortTag;
   biomes: Uint8Array;
-  TileEntities: Entity[];
+  TileEntities: BlockEntity[];
   TileTicks: TileTick[];
-}
-
-export declare interface Entity {
-  id: StringTag;
-  x: IntTag;
-  y: IntTag;
-}
-
-export declare interface TileTick {
-  i: StringTag;
-  p: IntTag;
-  t: IntTag;
-  x: IntTag;
-  y: IntTag;
-  z: IntTag;
 }
 
 export async function readChunks(region: Region): Promise<(Chunk | null)[]> {
