@@ -2,7 +2,7 @@ import { read, Int16, Int32, NBTData } from "nbtify";
 import { decompress, runLengthDecode } from "./compression.js";
 
 import type { ShortTag, IntTag, LongTag } from "nbtify";
-import type { BlockEntity, TileTick } from "../Region-Types/src/legacy-console/index.js";
+import type { BlockEntity, TileTick } from "region-types/src/legacy-console/index.js";
 import type { Region, Entry } from "./region.js";
 
 /* These types should eventually be derived from Region-Types. */
